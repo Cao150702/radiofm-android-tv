@@ -1,0 +1,96 @@
+<?xml version="1.0" encoding="utf-8"?>
+<ScrollView xmlns:android="http://schemas.android.com/apk/res/android"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    android:background="#F5EFE6">
+
+    <LinearLayout
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:orientation="vertical"
+        android:padding="14dp">
+
+        <!-- ===== 定时关闭 ===== -->
+        <TextView style="@style/SectionTitle" android:layout_width="wrap_content"
+            android:layout_height="wrap_content" android:text="定时关闭" />
+
+        <TextView
+            android:layout_width="match_parent" android:layout_height="wrap_content"
+            android:textSize="12sp" android:textColor="#5D4037"
+            android:text="到点自动停止播放。设一次只生效一次。" />
+
+        <LinearLayout
+            android:layout_width="match_parent" android:layout_height="wrap_content"
+            android:orientation="horizontal" android:layout_marginTop="6dp">
+            <Button android:id="@+id/sleep_15" style="@style/SmallButton"
+                android:layout_width="0dp" android:layout_height="wrap_content" android:layout_weight="1" android:text="15分" />
+            <Button android:id="@+id/sleep_30" style="@style/SmallButton"
+                android:layout_width="0dp" android:layout_height="wrap_content" android:layout_weight="1" android:text="30分" />
+            <Button android:id="@+id/sleep_60" style="@style/SmallButton"
+                android:layout_width="0dp" android:layout_height="wrap_content" android:layout_weight="1" android:text="60分" />
+            <Button android:id="@+id/sleep_90" style="@style/SmallButton"
+                android:layout_width="0dp" android:layout_height="wrap_content" android:layout_weight="1" android:text="90分" />
+            <Button android:id="@+id/sleep_off" style="@style/SmallButton"
+                android:layout_width="0dp" android:layout_height="wrap_content" android:layout_weight="1" android:text="取消" />
+        </LinearLayout>
+
+        <TextView android:id="@+id/sleep_status"
+            android:layout_width="match_parent" android:layout_height="wrap_content"
+            android:layout_marginTop="4dp" android:textSize="13sp" android:textColor="#2E7D32" />
+
+        <!-- ===== 定时唤醒 ===== -->
+        <TextView style="@style/SectionTitle" android:layout_width="wrap_content"
+            android:layout_height="wrap_content" android:layout_marginTop="18dp"
+            android:text="定时唤醒（每天）" />
+
+        <CheckBox android:id="@+id/alarm_enabled"
+            android:layout_width="wrap_content" android:layout_height="wrap_content"
+            android:text="启用定时开机播放" />
+
+        <LinearLayout
+            android:layout_width="match_parent" android:layout_height="wrap_content"
+            android:orientation="horizontal" android:gravity="center_vertical">
+            <TextView android:layout_width="wrap_content" android:layout_height="wrap_content"
+                android:text="时间：" />
+            <EditText android:id="@+id/alarm_hour" android:layout_width="60dp"
+                android:layout_height="wrap_content" android:inputType="number"
+                android:maxLength="2" android:gravity="center" android:hint="07" />
+            <TextView android:layout_width="wrap_content" android:layout_height="wrap_content"
+                android:text=" : " android:textSize="18sp" />
+            <EditText android:id="@+id/alarm_minute" android:layout_width="60dp"
+                android:layout_height="wrap_content" android:inputType="number"
+                android:maxLength="2" android:gravity="center" android:hint="00" />
+        </LinearLayout>
+
+        <TextView android:id="@+id/alarm_station_label"
+            android:layout_width="match_parent" android:layout_height="wrap_content"
+            android:layout_marginTop="4dp" android:textSize="13sp" android:textColor="#5D4037" />
+
+        <Button android:id="@+id/alarm_pick" style="@style/SmallButton"
+            android:layout_width="wrap_content" android:layout_height="wrap_content"
+            android:layout_marginTop="4dp" android:text="选择唤醒电台" />
+
+        <!-- ===== 其他 ===== -->
+        <TextView style="@style/SectionTitle" android:layout_width="wrap_content"
+            android:layout_height="wrap_content" android:layout_marginTop="18dp"
+            android:text="其他" />
+
+        <CheckBox android:id="@+id/show_icy"
+            android:layout_width="wrap_content" android:layout_height="wrap_content"
+            android:text="显示曲目信息（ICY 元数据）" />
+
+        <CheckBox android:id="@+id/boot_resume"
+            android:layout_width="wrap_content" android:layout_height="wrap_content"
+            android:text="开机后自动恢复上次电台" />
+
+        <Button android:id="@+id/save_btn"
+            android:layout_width="match_parent" android:layout_height="wrap_content"
+            android:layout_marginTop="18dp" android:text="保存设置" />
+
+        <TextView
+            android:layout_width="match_parent" android:layout_height="wrap_content"
+            android:layout_marginTop="14dp" android:textSize="11sp" android:textColor="#8D6E63"
+            android:text="网络收音机 v1.0 · 兼容 Android 4.4 及以上" />
+
+    </LinearLayout>
+</ScrollView>

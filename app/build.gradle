@@ -1,0 +1,37 @@
+plugins {
+    id 'com.android.application'
+}
+
+android {
+    namespace 'com.radio.fm'
+    compileSdk 35
+
+    defaultConfig {
+        applicationId "com.radio.fm"
+        minSdk 19          // Android 4.4 KitKat — 覆盖 4.4 及以上全部机型
+        targetSdk 28       // 不上 29+，避免分区存储/前台服务类型等新限制
+        versionCode 1
+        versionName "1.0"
+    }
+
+    buildTypes {
+        release {
+            minifyEnabled false
+            // 用 debug 签名，省去生成 keystore；自用够了
+            signingConfig signingConfigs.debug
+        }
+    }
+
+    compileOptions {
+        sourceCompatibility JavaVersion.VERSION_17
+        targetCompatibility JavaVersion.VERSION_17
+    }
+
+    lint {
+        abortOnError false
+    }
+}
+
+dependencies {
+    // 故意不依赖 AndroidX / support 库 —— 老机器上包越小越好
+}

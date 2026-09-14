@@ -1,0 +1,143 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- 设置页（电视横屏）。
+     和手机版的关键差异是「时间」：手机用 EditText 敲数字，遥控器上要弹软键盘，
+     基本没法用。这里换成两个可聚焦的显示框，方向键左右切换、上下加减。
+     对应的 Java 逻辑靠 findViewById 判空来分流，两套布局共用一份代码。 -->
+<ScrollView xmlns:android="http://schemas.android.com/apk/res/android"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    android:background="#F5EFE6">
+
+    <LinearLayout
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:orientation="vertical"
+        android:padding="28dp">
+
+        <!-- ===== 定时关闭 ===== -->
+        <TextView style="@style/TvSectionTitle" android:layout_width="wrap_content"
+            android:layout_height="wrap_content" android:text="定时关闭" />
+
+        <TextView
+            android:layout_width="match_parent" android:layout_height="wrap_content"
+            style="@style/TvSectionNote"
+            android:text="到点自动停止播放。设一次只生效一次。" />
+
+        <LinearLayout
+            android:layout_width="match_parent" android:layout_height="wrap_content"
+            android:orientation="horizontal" android:layout_marginTop="12dp">
+            <Button android:id="@+id/sleep_15" style="@style/TvSmallButton"
+                android:layout_width="0dp" android:layout_height="wrap_content" android:layout_weight="1" android:text="15分" />
+            <Button android:id="@+id/sleep_30" style="@style/TvSmallButton"
+                android:layout_width="0dp" android:layout_height="wrap_content" android:layout_weight="1" android:layout_marginLeft="12dp" android:text="30分" />
+            <Button android:id="@+id/sleep_60" style="@style/TvSmallButton"
+                android:layout_width="0dp" android:layout_height="wrap_content" android:layout_weight="1" android:layout_marginLeft="12dp" android:text="60分" />
+            <Button android:id="@+id/sleep_90" style="@style/TvSmallButton"
+                android:layout_width="0dp" android:layout_height="wrap_content" android:layout_weight="1" android:layout_marginLeft="12dp" android:text="90分" />
+            <Button android:id="@+id/sleep_off" style="@style/TvSmallButton"
+                android:layout_width="0dp" android:layout_height="wrap_content" android:layout_weight="1" android:layout_marginLeft="12dp" android:text="取消" />
+        </LinearLayout>
+
+        <TextView android:id="@+id/sleep_status"
+            android:layout_width="match_parent" android:layout_height="wrap_content"
+            android:layout_marginTop="8dp" style="@style/TvSectionNote"
+            android:textColor="#2E7D32" />
+
+        <!-- ===== 定时唤醒 ===== -->
+        <TextView style="@style/TvSectionTitle" android:layout_width="wrap_content"
+            android:layout_height="wrap_content" android:layout_marginTop="28dp"
+            android:text="定时唤醒（每天）" />
+
+        <CheckBox android:id="@+id/alarm_enabled"
+            style="@style/TvCheckBox"
+            android:layout_width="wrap_content" android:layout_height="wrap_content"
+            android:layout_marginTop="8dp"
+            android:text="启用定时开机播放" />
+
+        <!-- 时间：遥控器加减。
+             两个 EditText 保留同样的 id 让 Java 里 parseInt/setText 照常工作，
+             但设成不可聚焦、由外层的 ▲▼ 按钮改它的值。
+
+             布局用「标签单独一行 + 时分横向并排」，每列是 上箭头/数字/下箭头 的竖排。
+             之前把「时间」标签和时间控件塞在同一个横向 LinearLayout 里，
+             gravity=center_vertical 会让标签和竖排的数字框对不齐，看着很乱。 -->
+        <TextView style="@style/TvSectionNote"
+            android:layout_width="wrap_content" android:layout_height="wrap_content"
+            android:layout_marginTop="14dp"
+            android:text="时间" />
+
+        <LinearLayout
+            android:layout_width="wrap_content" android:layout_height="wrap_content"
+            android:orientation="horizontal" android:gravity="center_vertical"
+            android:layout_marginTop="10dp">
+
+            <LinearLayout
+                android:layout_width="wrap_content" android:layout_height="wrap_content"
+                android:orientation="vertical" android:gravity="center_horizontal">
+                <Button android:id="@+id/time_hour_up" style="@style/TvTimeButton"
+                    android:layout_width="100dp" android:layout_height="56dp" android:text="▲" />
+                <EditText android:id="@+id/alarm_hour"
+                    style="@style/TvTimeDisplay"
+                    android:layout_width="100dp" android:layout_height="76dp"
+                    android:focusable="false" android:focusableInTouchMode="false"
+                    android:clickable="false" android:cursorVisible="false"
+                    android:inputType="none" android:gravity="center" android:hint="07" />
+                <Button android:id="@+id/time_hour_down" style="@style/TvTimeButton"
+                    android:layout_width="100dp" android:layout_height="56dp" android:text="▼" />
+            </LinearLayout>
+
+            <TextView style="@style/TvTimeDisplay"
+                android:layout_width="wrap_content" android:layout_height="wrap_content"
+                android:layout_marginLeft="14dp" android:layout_marginRight="14dp"
+                android:text=":" />
+
+            <LinearLayout
+                android:layout_width="wrap_content" android:layout_height="wrap_content"
+                android:orientation="vertical" android:gravity="center_horizontal">
+                <Button android:id="@+id/time_min_up" style="@style/TvTimeButton"
+                    android:layout_width="100dp" android:layout_height="56dp" android:text="▲" />
+                <EditText android:id="@+id/alarm_minute"
+                    style="@style/TvTimeDisplay"
+                    android:layout_width="100dp" android:layout_height="76dp"
+                    android:focusable="false" android:focusableInTouchMode="false"
+                    android:clickable="false" android:cursorVisible="false"
+                    android:inputType="none" android:gravity="center" android:hint="00" />
+                <Button android:id="@+id/time_min_down" style="@style/TvTimeButton"
+                    android:layout_width="100dp" android:layout_height="56dp" android:text="▼" />
+            </LinearLayout>
+        </LinearLayout>
+
+        <TextView android:id="@+id/alarm_station_label"
+            android:layout_width="match_parent" android:layout_height="wrap_content"
+            android:layout_marginTop="16dp" style="@style/TvSectionNote" />
+
+        <Button android:id="@+id/alarm_pick" style="@style/TvSmallButton"
+            android:layout_width="wrap_content" android:layout_height="wrap_content"
+            android:layout_marginTop="10dp" android:text="选择唤醒电台" />
+
+        <!-- ===== 其他 ===== -->
+        <TextView style="@style/TvSectionTitle" android:layout_width="wrap_content"
+            android:layout_height="wrap_content" android:layout_marginTop="28dp"
+            android:text="其他" />
+
+        <CheckBox android:id="@+id/show_icy" style="@style/TvCheckBox"
+            android:layout_width="wrap_content" android:layout_height="wrap_content"
+            android:layout_marginTop="8dp"
+            android:text="显示曲目信息（ICY 元数据）" />
+
+        <CheckBox android:id="@+id/boot_resume" style="@style/TvCheckBox"
+            android:layout_width="wrap_content" android:layout_height="wrap_content"
+            android:layout_marginTop="4dp"
+            android:text="开机后自动恢复上次电台" />
+
+        <Button android:id="@+id/save_btn" style="@style/TvPrimaryButton"
+            android:layout_width="match_parent" android:layout_height="72dp"
+            android:layout_marginTop="28dp" android:text="保存设置" />
+
+        <TextView
+            android:layout_width="match_parent" android:layout_height="wrap_content"
+            android:layout_marginTop="20dp" style="@style/TvSectionNote"
+            android:text="网络收音机 v1.0 · 电视版" />
+
+    </LinearLayout>
+</ScrollView>

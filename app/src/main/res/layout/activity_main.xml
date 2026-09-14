@@ -1,0 +1,186 @@
+<?xml version="1.0" encoding="utf-8"?>
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    android:orientation="vertical"
+    android:background="#F5EFE6">
+
+    <!-- ===== 收音机面板 ===== -->
+    <LinearLayout
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:orientation="vertical"
+        android:background="#6D4C41"
+        android:padding="14dp">
+
+        <TextView
+            android:id="@+id/station_name"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:text="网络收音机"
+            android:textColor="#FFF8E1"
+            android:textSize="20sp"
+            android:textStyle="bold"
+            android:singleLine="true"
+            android:ellipsize="marquee" />
+
+        <TextView
+            android:id="@+id/station_meta"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:textColor="#D7CCC8"
+            android:textSize="12sp"
+            android:singleLine="true" />
+
+        <!-- 调谐刻度条 + 指针 -->
+        <FrameLayout
+            android:layout_width="match_parent"
+            android:layout_height="34dp"
+            android:layout_marginTop="8dp"
+            android:background="#FFF8E1">
+
+            <LinearLayout
+                android:layout_width="match_parent"
+                android:layout_height="match_parent"
+                android:orientation="horizontal"
+                android:weightSum="20"
+                android:paddingLeft="6dp"
+                android:paddingRight="6dp">
+
+                <View android:layout_width="1dp" android:layout_height="match_parent"
+                    android:layout_marginTop="18dp" android:background="#BCAAA4"
+                    android:layout_weight="1" />
+                <View android:layout_width="0dp" android:layout_height="match_parent" android:layout_weight="1" />
+                <View android:layout_width="1dp" android:layout_height="match_parent"
+                    android:layout_marginTop="18dp" android:background="#BCAAA4" android:layout_weight="1" />
+                <View android:layout_width="0dp" android:layout_height="match_parent" android:layout_weight="1" />
+                <View android:layout_width="1dp" android:layout_height="match_parent"
+                    android:layout_marginTop="18dp" android:background="#BCAAA4" android:layout_weight="1" />
+                <View android:layout_width="0dp" android:layout_height="match_parent" android:layout_weight="1" />
+                <View android:layout_width="1dp" android:layout_height="match_parent"
+                    android:layout_marginTop="18dp" android:background="#BCAAA4" android:layout_weight="1" />
+                <View android:layout_width="0dp" android:layout_height="match_parent" android:layout_weight="1" />
+                <View android:layout_width="1dp" android:layout_height="match_parent"
+                    android:layout_marginTop="18dp" android:background="#BCAAA4" android:layout_weight="1" />
+                <View android:layout_width="0dp" android:layout_height="match_parent" android:layout_weight="1" />
+                <View android:layout_width="1dp" android:layout_height="match_parent"
+                    android:layout_marginTop="18dp" android:background="#BCAAA4" android:layout_weight="1" />
+                <View android:layout_width="0dp" android:layout_height="match_parent" android:layout_weight="1" />
+                <View android:layout_width="1dp" android:layout_height="match_parent"
+                    android:layout_marginTop="18dp" android:background="#BCAAA4" android:layout_weight="1" />
+                <View android:layout_width="0dp" android:layout_height="match_parent" android:layout_weight="1" />
+                <View android:layout_width="1dp" android:layout_height="match_parent"
+                    android:layout_marginTop="18dp" android:background="#BCAAA4" android:layout_weight="1" />
+                <View android:layout_width="0dp" android:layout_height="match_parent" android:layout_weight="1" />
+                <View android:layout_width="1dp" android:layout_height="match_parent"
+                    android:layout_marginTop="18dp" android:background="#BCAAA4" android:layout_weight="1" />
+                <View android:layout_width="0dp" android:layout_height="match_parent" android:layout_weight="1" />
+                <View android:layout_width="1dp" android:layout_height="match_parent"
+                    android:layout_marginTop="18dp" android:background="#BCAAA4" android:layout_weight="1" />
+                <View android:layout_width="0dp" android:layout_height="match_parent" android:layout_weight="1" />
+            </LinearLayout>
+
+            <ImageView
+                android:id="@+id/tune_needle"
+                android:layout_width="3dp"
+                android:layout_height="match_parent"
+                android:layout_gravity="center_horizontal"
+                android:background="#C62828"
+                android:visibility="invisible" />
+        </FrameLayout>
+    </LinearLayout>
+
+    <!-- ===== 状态区 ===== -->
+    <LinearLayout
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:orientation="vertical"
+        android:paddingLeft="14dp"
+        android:paddingRight="14dp"
+        android:paddingTop="8dp">
+
+        <TextView
+            android:id="@+id/status_text"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:textSize="13sp"
+            android:textColor="#5D4037" />
+
+        <TextView
+            android:id="@+id/icy_text"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="2dp"
+            android:textSize="13sp"
+            android:textStyle="italic"
+            android:textColor="#2E7D32"
+            android:visibility="gone"
+            android:singleLine="true"
+            android:ellipsize="marquee" />
+    </LinearLayout>
+
+    <!-- ===== 控制按钮 ===== -->
+    <LinearLayout
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:orientation="horizontal"
+        android:padding="10dp">
+
+        <Button
+            android:id="@+id/btn_play"
+            style="@style/BigButton"
+            android:layout_width="0dp" android:layout_height="wrap_content"
+            android:layout_weight="1"
+            android:text="@string/play" />
+
+        <Button
+            android:id="@+id/btn_stop"
+            style="@style/BigButton"
+            android:layout_width="0dp" android:layout_height="wrap_content"
+            android:layout_weight="1"
+            android:layout_marginLeft="8dp"
+            android:text="@string/stop" />
+
+        <Button
+            android:id="@+id/btn_fav"
+            style="@style/BigButton"
+            android:layout_width="0dp" android:layout_height="wrap_content"
+            android:layout_weight="1"
+            android:layout_marginLeft="8dp"
+            android:text="收藏" />
+    </LinearLayout>
+
+    <!-- ===== 过滤框 ===== -->
+    <EditText
+        android:id="@+id/filter_box"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:layout_marginLeft="10dp"
+        android:layout_marginRight="10dp"
+        android:hint="搜索电台名 / 分类 / 地区"
+        android:imeOptions="actionSearch"
+        android:inputType="text"
+        android:singleLine="true"
+        android:textSize="14sp" />
+
+    <ListView
+        android:id="@+id/station_list"
+        android:layout_width="match_parent"
+        android:layout_height="0dp"
+        android:layout_weight="1"
+        android:layout_marginTop="6dp"
+        android:divider="#D7CCC8"
+        android:dividerHeight="1dp"
+        android:cacheColorHint="#00000000"
+        android:scrollbarStyle="outsideOverlay" />
+
+    <TextView
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:padding="6dp"
+        android:textSize="11sp"
+        android:textColor="#8D6E63"
+        android:text="菜单键 → 浏览在线电台库 / 导入播放列表 / 设置"
+        android:gravity="center" />
+
+</LinearLayout>

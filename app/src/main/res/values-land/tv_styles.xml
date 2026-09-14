@@ -1,0 +1,86 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- 电视（横屏）尺寸覆盖 —— 只在横屏生效，手机竖屏完全不受影响。
+     这些名字在 values/tv_styles.xml 里有对应的空版（不含 textSize），
+     所以布局文件只写一次即可，系统按屏幕方向挑数值。
+
+     数值依据：1920×1080 电视，观看距离约 3 米。
+     一般经验是「电视字号 ≈ 手机字号 × 1.5~2」，这里取偏大的一档
+     （客厅电视往往装在 3 米开外，取小了看着费劲）。 -->
+<resources>
+
+    <!-- 电台名：手机 20sp → 电视 36sp -->
+    <style name="TvStationName">
+        <item name="android:textSize">36sp</item>
+    </style>
+
+    <!-- 副标题：12sp → 17sp -->
+    <style name="TvStationMeta">
+        <item name="android:textSize">17sp</item>
+    </style>
+
+    <!-- 状态文字：13sp → 18sp -->
+    <style name="TvStatusText">
+        <item name="android:textSize">18sp</item>
+    </style>
+
+    <!-- 曲目信息：13sp → 17sp -->
+    <style name="TvIcyText">
+        <item name="android:textSize">17sp</item>
+    </style>
+
+    <!-- 列表项：16sp → 24sp -->
+    <style name="TvRowName">
+        <item name="android:textSize">24sp</item>
+    </style>
+
+    <!-- 列表副标题：12sp → 16sp -->
+    <style name="TvRowSub">
+        <item name="android:textSize">16sp</item>
+    </style>
+
+    <!-- ===== 设置页 / 在线库 ===== -->
+    <style name="TvSectionTitle">
+        <item name="android:textSize">24sp</item>
+        <item name="android:textStyle">bold</item>
+        <item name="android:textColor">#3E2723</item>
+    </style>
+
+    <style name="TvSectionNote">
+        <item name="android:textSize">18sp</item>
+        <item name="android:textColor">#5D4037</item>
+    </style>
+
+    <style name="TvCheckBox">
+        <item name="android:textSize">20sp</item>
+        <item name="android:minHeight">56dp</item>
+    </style>
+
+    <!-- 时间的加减按钮：遥控器按起来要够大 -->
+    <style name="TvTimeButton">
+        <item name="android:textSize">20sp</item>
+        <item name="android:background">@drawable/btn_focus</item>
+    </style>
+
+    <style name="TvTimeDisplay">
+        <item name="android:textSize">34sp</item>
+        <item name="android:textColor">#3E2723</item>
+        <item name="android:textStyle">bold</item>
+    </style>
+
+    <style name="TvSmallButton">
+        <item name="android:textSize">20sp</item>
+        <item name="android:minHeight">64dp</item>
+        <item name="android:background">@drawable/btn_focus</item>
+    </style>
+
+    <style name="TvPrimaryButton">
+        <item name="android:textSize">22sp</item>
+        <item name="android:background">@drawable/btn_focus</item>
+    </style>
+
+    <style name="TvListHint">
+        <item name="android:textSize">18sp</item>
+        <item name="android:textColor">#5D4037</item>
+    </style>
+
+</resources>

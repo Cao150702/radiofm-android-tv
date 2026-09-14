@@ -1,0 +1,93 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- 在线电台库（电视横屏）。
+     手机版靠 EditText 搜关键词 + 弹窗选地区，遥控器上两样都难用
+     （打字要弹软键盘、弹窗选择要一路按方向键）。
+     这里把「地区」直接铺成一排按钮，方向键左右切换、确认即换地区，
+     一次按键就能换，不用进弹窗。
+
+     搜索框保留（id 不变，Java 不用改），但设成不可聚焦并缩到角落 ——
+     电视上仍可用外接键盘搜，遥控器则完全绕开它。 -->
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    android:orientation="vertical"
+    android:background="#F5EFE6">
+
+    <!-- 地区：一排按钮，遥控器直接按 -->
+    <LinearLayout
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:orientation="horizontal"
+        android:padding="20dp"
+        android:paddingBottom="10dp"
+        android:gravity="center_vertical">
+
+        <TextView style="@style/TvListHint"
+            android:layout_width="wrap_content" android:layout_height="wrap_content"
+            android:layout_marginRight="14dp" android:text="地区" />
+
+        <Button android:id="@+id/cn_cn" style="@style/TvSmallButton"
+            android:layout_width="0dp" android:layout_weight="1" android:layout_height="64dp" android:text="中国大陆" />
+        <Button android:id="@+id/cn_hk" style="@style/TvSmallButton"
+            android:layout_width="0dp" android:layout_weight="1" android:layout_height="64dp"
+            android:layout_marginLeft="10dp" android:text="香港" />
+        <Button android:id="@+id/cn_tw" style="@style/TvSmallButton"
+            android:layout_width="0dp" android:layout_weight="1" android:layout_height="64dp"
+            android:layout_marginLeft="10dp" android:text="台湾" />
+        <Button android:id="@+id/cn_us" style="@style/TvSmallButton"
+            android:layout_width="0dp" android:layout_weight="1" android:layout_height="64dp"
+            android:layout_marginLeft="10dp" android:text="美国" />
+        <Button android:id="@+id/cn_jp" style="@style/TvSmallButton"
+            android:layout_width="0dp" android:layout_weight="1" android:layout_height="64dp"
+            android:layout_marginLeft="10dp" android:text="日本" />
+        <Button android:id="@+id/cn_all" style="@style/TvSmallButton"
+            android:layout_width="0dp" android:layout_weight="1" android:layout_height="64dp"
+            android:layout_marginLeft="10dp" android:text="全部" />
+    </LinearLayout>
+
+    <!-- 隐藏的原控件：Java 里 findViewById 和 setText 照常用，只是不显示 -->
+    <LinearLayout
+        android:layout_width="match_parent" android:layout_height="wrap_content"
+        android:orientation="horizontal" android:paddingLeft="20dp" android:paddingRight="20dp">
+        <EditText
+            android:id="@+id/online_search"
+            android:layout_width="1dp" android:layout_height="1dp"
+            android:focusable="false" android:focusableInTouchMode="false"
+            android:clickable="false" android:inputType="none" />
+        <Button
+            android:id="@+id/online_btn"
+            android:layout_width="1dp" android:layout_height="1dp"
+            android:focusable="false" android:visibility="gone" />
+        <Button
+            android:id="@+id/online_country"
+            android:layout_width="0dp" android:layout_weight="1"
+            android:layout_height="56dp" android:textSize="18sp"
+            android:background="@drawable/btn_focus" android:text="中国大陆" />
+        <TextView
+            android:id="@+id/online_hint"
+            android:layout_width="0dp" android:layout_weight="3"
+            android:layout_height="wrap_content" android:layout_gravity="center_vertical"
+            android:layout_marginLeft="16dp" style="@style/TvListHint" />
+    </LinearLayout>
+
+    <ListView
+        android:id="@+id/online_list"
+        android:layout_width="match_parent"
+        android:layout_height="0dp"
+        android:layout_weight="1"
+        android:divider="#D7CCC8"
+        android:dividerHeight="1dp"
+        android:cacheColorHint="#00000000"
+        android:listSelector="@drawable/row_focus"
+        android:focusable="true"
+        android:focusableInTouchMode="false"
+        android:scrollbarStyle="outsideOverlay" />
+
+    <TextView
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:padding="20dp"
+        style="@style/TvListHint"
+        android:text="数据来自 radio-browser.info。已过滤 Android 4.4 不支持的 HLS 流。" />
+
+</LinearLayout>

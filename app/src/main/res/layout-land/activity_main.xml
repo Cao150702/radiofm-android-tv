@@ -1,0 +1,250 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- 电视（横屏）主界面 —— 左右两栏。
+     左边的收音机面板 + 控制按钮固定宽度，右边的电台列表吃掉剩余全部空间。
+     只在横屏加载（layout-land），手机竖屏仍用 layout/activity_main.xml。
+
+     为什么这么分：1920 宽的电视上，竖屏那种「一块面板 + 下方列表」会让列表
+     只有中间一条，浪费掉大半屏幕；电台名也排不开。左右分栏后列表能显示更多行，
+     每行也更长，遥控器扫起来更快。
+
+     ListView 自带 D-pad 焦点导航和 item 点击（KEYCODE_DPAD_CENTER → onItemClick），
+     不需要额外写遥控器代码 —— 这是原生版比 Web 版省事的地方。 -->
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    android:orientation="horizontal"
+    android:background="#F5EFE6">
+
+    <!-- ================= 左栏 ================= -->
+    <LinearLayout
+        android:layout_width="520dp"
+        android:layout_height="match_parent"
+        android:orientation="vertical">
+
+        <!-- 收音机面板 -->
+        <LinearLayout
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:orientation="vertical"
+            android:background="#6D4C41"
+            android:padding="24dp">
+
+            <TextView
+                android:id="@+id/station_name"
+                style="@style/TvStationName"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:text="网络收音机"
+                android:textColor="#FFF8E1"
+                android:textStyle="bold"
+                android:singleLine="true"
+                android:ellipsize="marquee" />
+
+            <TextView
+                android:id="@+id/station_meta"
+                style="@style/TvStationMeta"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:textColor="#D7CCC8"
+                android:singleLine="true" />
+
+            <!-- 调谐刻度条 + 指针。
+                 原写法是 20 个 View 靠 layout_weight 平分宽度，但在 1080p 电视上
+                 算出来的宽度不对（截图里刻度变成了棕色矮块 + 右侧留大片空白）。
+                 改成固定宽度的刻度，排版可预期。 -->
+            <FrameLayout
+                android:layout_width="match_parent"
+                android:layout_height="56dp"
+                android:layout_marginTop="14dp"
+                android:background="#FFF8E1">
+
+                <LinearLayout
+                    android:layout_width="match_parent"
+                    android:layout_height="match_parent"
+                    android:orientation="horizontal"
+                    android:gravity="center_vertical"
+                    android:paddingLeft="10dp"
+                    android:paddingRight="10dp">
+
+                    <View android:layout_width="2dp" android:layout_height="26dp"
+                        android:layout_marginRight="0dp" android:background="#BCAAA4" />
+                    <View android:layout_width="0dp" android:layout_height="1dp" android:layout_weight="1" />
+                    <View android:layout_width="2dp" android:layout_height="30dp" android:background="#BCAAA4" />
+                    <View android:layout_width="0dp" android:layout_height="1dp" android:layout_weight="1" />
+                    <View android:layout_width="2dp" android:layout_height="26dp" android:background="#BCAAA4" />
+                    <View android:layout_width="0dp" android:layout_height="1dp" android:layout_weight="1" />
+                    <View android:layout_width="2dp" android:layout_height="30dp" android:background="#BCAAA4" />
+                    <View android:layout_width="0dp" android:layout_height="1dp" android:layout_weight="1" />
+                    <View android:layout_width="2dp" android:layout_height="26dp" android:background="#BCAAA4" />
+                    <View android:layout_width="0dp" android:layout_height="1dp" android:layout_weight="1" />
+                    <View android:layout_width="2dp" android:layout_height="30dp" android:background="#BCAAA4" />
+                    <View android:layout_width="0dp" android:layout_height="1dp" android:layout_weight="1" />
+                    <View android:layout_width="2dp" android:layout_height="26dp" android:background="#BCAAA4" />
+                    <View android:layout_width="0dp" android:layout_height="1dp" android:layout_weight="1" />
+                    <View android:layout_width="2dp" android:layout_height="30dp" android:background="#BCAAA4" />
+                    <View android:layout_width="0dp" android:layout_height="1dp" android:layout_weight="1" />
+                    <View android:layout_width="2dp" android:layout_height="26dp" android:background="#BCAAA4" />
+                </LinearLayout>
+
+                <ImageView
+                    android:id="@+id/tune_needle"
+                    android:layout_width="4dp"
+                    android:layout_height="match_parent"
+                    android:layout_gravity="center_horizontal"
+                    android:background="#C62828"
+                    android:visibility="invisible" />
+            </FrameLayout>
+
+            <!-- 状态 + 曲目信息（放在木纹面板里，和手机版一致） -->
+            <TextView
+                android:id="@+id/status_text"
+                style="@style/TvStatusText"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="12dp"
+                android:textColor="#D7CCC8" />
+
+            <TextView
+                android:id="@+id/icy_text"
+                style="@style/TvIcyText"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="4dp"
+                android:textStyle="italic"
+                android:textColor="#A5D6A7"
+                android:visibility="gone"
+                android:singleLine="true"
+                android:ellipsize="marquee" />
+        </LinearLayout>
+
+        <!-- 控制按钮。原来是 layout_weight=1 撑满剩余高度并垂直居中，
+             但 1080p 下会把按钮行推到很靠下的位置，左栏中间空出一大块，
+             看着很散。改成固定间距，整体紧凑排布。 -->
+        <LinearLayout
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:orientation="horizontal"
+            android:layout_marginTop="28dp"
+            android:paddingLeft="20dp"
+            android:paddingRight="20dp">
+
+            <Button
+                android:id="@+id/btn_play"
+                android:layout_width="0dp"
+                android:layout_weight="1"
+                android:layout_height="72dp"
+                android:textSize="22sp"
+                android:background="@drawable/btn_focus"
+                android:text="@string/play" />
+
+            <Button
+                android:id="@+id/btn_stop"
+                android:layout_width="0dp"
+                android:layout_weight="1"
+                android:layout_height="72dp"
+                android:layout_marginLeft="14dp"
+                android:textSize="22sp"
+                android:background="@drawable/btn_focus"
+                android:text="@string/stop" />
+
+            <Button
+                android:id="@+id/btn_fav"
+                android:layout_width="0dp"
+                android:layout_weight="1"
+                android:layout_height="72dp"
+                android:layout_marginLeft="14dp"
+                android:textSize="22sp"
+                android:background="@drawable/btn_focus"
+                android:text="收藏" />
+        </LinearLayout>
+
+        <!-- 电视上不显示软键盘搜索框 —— 遥控器打字极其难用，
+             列表靠方向键翻即可。留「只看收藏」和「更多」两个入口给遥控器用。
+
+             「更多」是必须的：菜单（在线电台库/导入/设置/添加自定义电台）
+             原本只靠硬件菜单键打开，而绝大多数电视遥控器上没有这个键 ——
+             不加这个按钮，这些功能在电视上等于不存在。 -->
+        <LinearLayout
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:orientation="horizontal"
+            android:layout_marginTop="16dp"
+            android:paddingLeft="20dp"
+            android:paddingRight="20dp"
+            android:paddingBottom="20dp">
+
+            <Button
+                android:id="@+id/btn_fav_filter"
+                android:layout_width="0dp"
+                android:layout_weight="1"
+                android:layout_height="68dp"
+                android:textSize="22sp"
+                android:background="@drawable/btn_focus"
+                android:text="只看收藏" />
+
+            <Button
+                android:id="@+id/btn_more"
+                android:layout_width="0dp"
+                android:layout_weight="1"
+                android:layout_height="68dp"
+                android:layout_marginLeft="14dp"
+                android:textSize="22sp"
+                android:background="@drawable/btn_focus"
+                android:text="更多 ⋯" />
+        </LinearLayout>
+
+        <!-- filter_box 在电视布局里不显示，但 MainActivity 会 findViewById 并挂监听，
+             所以必须留一个真实存在的控件，否则空指针。
+
+             为什么不直接 visibility="gone" 了事：GONE 的控件接不了焦点，
+             从列表按 ← 会直接跳过这一层跳到上面的按钮 —— 中间隔了一整块，
+             遥控器用起来方向感很差。这里给 1dp 见方、不可聚焦、且明确
+             focusable="false"，既能被 findViewById 找到，又不参与遥控器导航，
+             也就不会有人误触它弹出软键盘。 -->
+        <EditText
+            android:id="@+id/filter_box"
+            android:layout_width="1dp"
+            android:layout_height="1dp"
+            android:focusable="false"
+            android:focusableInTouchMode="false"
+            android:clickable="false"
+            android:inputType="none" />
+    </LinearLayout>
+
+    <!-- ================= 右栏：电台列表 ================= -->
+    <LinearLayout
+        android:layout_width="0dp"
+        android:layout_height="match_parent"
+        android:layout_weight="1"
+        android:orientation="vertical"
+        android:background="#F5EFE6">
+
+        <TextView
+            android:id="@+id/list_hint"
+            style="@style/TvStatusText"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:paddingLeft="20dp"
+            android:paddingRight="20dp"
+            android:paddingTop="16dp"
+            android:paddingBottom="8dp"
+            android:textColor="#5D4037"
+            android:text="方向键选台 · 确认键播放 · 菜单键更多" />
+
+        <ListView
+            android:id="@+id/station_list"
+            android:layout_width="match_parent"
+            android:layout_height="0dp"
+            android:layout_weight="1"
+            android:divider="#D7CCC8"
+            android:dividerHeight="1dp"
+            android:cacheColorHint="#00000000"
+            android:listSelector="@drawable/row_focus"
+            android:drawSelectorOnTop="false"
+            android:focusable="true"
+            android:focusableInTouchMode="false"
+            android:descendantFocusability="blocksDescendants"
+            android:scrollbarStyle="outsideOverlay" />
+    </LinearLayout>
+
+</LinearLayout>

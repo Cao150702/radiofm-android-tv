@@ -1,0 +1,184 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="theme-color" content="#6D4C41">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<title>网络收音机</title>
+<link rel="stylesheet" href="style.css">
+<link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'><rect width='64' height='64' rx='12' fill='%236D4C41'/><rect x='10' y='26' width='44' height='22' rx='4' fill='%23FFF8E1'/><line x1='32' y1='28' x2='32' y2='46' stroke='%23C62828' stroke-width='3'/><path d='M22 26 L40 10' stroke='%23FFF8E1' stroke-width='3' fill='none'/><circle cx='42' cy='9' r='4' fill='%23C62828'/></svg>">
+</head>
+<body>
+
+<div class="app">
+
+  <!-- ===== 收音机面板 =====
+       这一块 + 控制按钮在电视横屏下组成左栏（见 style.css 电视布局段）。
+       #panelCol 这层包装是布局用的：手机竖屏时它是 display:contents，
+       对布局完全隐身，视觉与不加包装时一模一样。 -->
+  <div id="panelCol">
+  <header class="panel">
+    <div class="brand">网络收音机 <span class="ver">v1.0 · Web</span></div>
+
+    <div class="station-name" id="stationName">网络收音机</div>
+    <div class="station-meta" id="stationMeta"></div>
+
+    <!-- 调谐刻度条 -->
+    <div class="tuner">
+      <div class="ticks" id="ticks"></div>
+      <div class="needle" id="needle"></div>
+    </div>
+
+    <div class="statusbar">
+      <span id="statusText">已停止</span>
+      <span class="spacer"></span>
+      <span class="badge" id="stateBadge">IDLE</span>
+    </div>
+
+    <div class="icy" id="icyText" hidden>♪ —</div>
+  </header>
+
+  <!-- ===== 控制按钮 ===== -->
+  <div class="controls" id="controls">
+    <button id="btnPlay" class="big">播放</button>
+    <button id="btnStop" class="big">停止</button>
+    <button id="btnFav"  class="big">收藏</button>
+  </div>
+  </div>
+
+  <!-- ===== 工具条 ===== -->
+  <div class="toolbar">
+    <input id="filterBox" type="search" placeholder="搜索电台名 / 分类 / 地区" autocomplete="off">
+    <select id="filterMode">
+      <option value="0">全部电台</option>
+      <option value="1">只看收藏</option>
+    </select>
+    <button id="btnMore" class="icon" title="更多">⋯</button>
+  </div>
+
+  <div class="countline"><span id="countHint">共 0 个电台</span></div>
+
+  <!-- ===== 电台列表 ===== -->
+  <ul class="list" id="stationList"></ul>
+
+  <footer class="foot">
+    <button class="link" id="btnAdd">＋ 添加自定义电台</button>
+    <button class="link" id="btnImport">导入 M3U/PLS</button>
+    <button class="link" id="btnOnline">浏览在线电台库</button>
+    <button class="link" id="btnSettings">⚙ 设置</button>
+  </footer>
+
+</div>
+
+<!-- 提示条 -->
+<div class="toast" id="toast" hidden></div>
+
+<!-- ===== 弹层：自定义电台 / 播放列表导入 ===== -->
+<div class="modal" id="mAdd" hidden>
+  <div class="sheet">
+    <h3>添加自定义电台</h3>
+    <label>名称<input id="addName" type="text" placeholder="例如：我的电台"></label>
+    <label>流地址<input id="addUrl" type="url" placeholder="http:// 或 https:// 开头"></label>
+    <div class="sheet-btns">
+      <button class="ghost" data-close>取消</button>
+      <button class="primary" id="addSave">保存</button>
+    </div>
+  </div>
+</div>
+
+<div class="modal" id="mImport" hidden>
+  <div class="sheet">
+    <h3>导入播放列表</h3>
+    <label>粘贴 M3U / PLS 内容，或 http:// 开头的播放列表地址
+      <textarea id="importText" rows="6" placeholder="#EXTINF:-1,某某电台&#10;http://example.com/stream"></textarea>
+    </label>
+    <div class="sheet-btns">
+      <button class="ghost" data-close>取消</button>
+      <button class="primary" id="importDo">导入</button>
+    </div>
+  </div>
+</div>
+
+<!-- ===== 弹层：在线电台库 ===== -->
+<div class="modal" id="mOnline" hidden>
+  <div class="sheet wide">
+    <h3>在线电台库 <span class="sub">radio-browser.info</span></h3>
+    <div class="online-bar">
+      <input id="onlineSearch" type="search" placeholder="搜索电台名（留空 = 按地区列出）" autocomplete="off">
+      <select id="onlineCountry">
+        <option value="CN" selected>中国大陆</option>
+        <option value="HK">香港</option>
+        <option value="TW">台湾</option>
+        <option value="US">美国</option>
+        <option value="JP">日本</option>
+        <option value="">全部</option>
+      </select>
+      <button class="primary" id="onlineGo">搜索</button>
+    </div>
+    <div class="online-hint" id="onlineHint">查询中…</div>
+    <ul class="list compact" id="onlineList"></ul>
+    <div class="sheet-btns">
+      <button class="ghost" data-close>关闭</button>
+    </div>
+  </div>
+</div>
+
+<!-- ===== 弹层：设置 ===== -->
+<div class="modal" id="mSettings" hidden>
+  <div class="sheet">
+    <h3>设置</h3>
+
+    <div class="sec-title">定时关闭</div>
+    <div class="sec-note">到点自动停止播放。设一次只生效一次。</div>
+    <div class="sleep-row">
+      <button class="small" data-sleep="15">15分</button>
+      <button class="small" data-sleep="30">30分</button>
+      <button class="small" data-sleep="60">60分</button>
+      <button class="small" data-sleep="90">90分</button>
+      <button class="small" data-sleep="0">取消</button>
+    </div>
+    <div class="ok-line" id="sleepStatus"></div>
+
+    <div class="sec-title">定时唤醒（每天）</div>
+    <label class="check"><input id="alarmEnabled" type="checkbox"> 启用定时开机播放</label>
+    <div class="time-row">
+      <span>时间：</span>
+      <input id="alarmHour" type="number" min="0" max="23" maxlength="2" value="07">
+      <span class="colon">:</span>
+      <input id="alarmMinute" type="number" min="0" max="59" maxlength="2" value="00">
+    </div>
+    <div class="label-line" id="alarmStationLabel">唤醒电台：未选择</div>
+    <button class="small" id="alarmPick">选择唤醒电台</button>
+
+    <div class="sec-title">其他</div>
+    <label class="check"><input id="showIcy" type="checkbox" checked> 显示曲目信息（ICY 元数据）</label>
+    <label class="check"><input id="bootResume" type="checkbox"> 打开页面后自动恢复上次电台</label>
+
+    <div class="sheet-btns">
+      <button class="ghost" data-close>关闭</button>
+      <button class="primary" id="settingsSave">保存设置</button>
+    </div>
+    <div class="ver-line">网络收音机 v1.0 · Web 预览版（Android 版为 4.4+）</div>
+  </div>
+</div>
+
+<!-- ===== 弹层：选择唤醒电台 ===== -->
+<div class="modal" id="mPick" hidden>
+  <div class="sheet">
+    <h3>选择唤醒电台</h3>
+    <ul class="list compact picklist" id="pickList"></ul>
+    <div class="sheet-btns">
+      <button class="ghost" data-close>取消</button>
+    </div>
+  </div>
+</div>
+
+<script src="stations.js"></script>
+<script src="probe.js"></script>
+<script src="tvnav.js"></script>
+<script src="app.js"></script>
+</body>
+</html>

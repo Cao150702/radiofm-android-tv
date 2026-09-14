@@ -1,0 +1,425 @@
+/* 网络收音机 · Web 预览版
+   配色沿用 Android 版：面板 #6D4C41 / 刻度条 #FFF8E1 / 指针 #C62828
+   字体用系统 UI 字体，中文落到 PingFang SC / 微软雅黑 */
+
+:root {
+  --wood:      #6D4C41;   /* 机身 */
+  --wood-dark: #3E2723;   /* 标题/正文 */
+  --cream:     #FFF8E1;   /* 刻度条 */
+  --paper:     #F5EFE6;   /* 页面底 */
+  --ink:       #5D4037;   /* 次级文字 */
+  --ink-lite:  #8D6E63;   /* 弱化文字 */
+  --line:      #D7CCC8;   /* 分隔线 */
+  --tick:      #BCAAA4;   /* 刻度 */
+  --needle:    #C62828;   /* 指针/强调 */
+  --ok:        #2E7D32;   /* 绿色提示 */
+  --shadow:    0 1px 3px rgba(62, 39, 35, .18);
+}
+
+* { box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
+
+/* [hidden] 必须真的不显示。
+ *
+ * 坑：浏览器 UA 样式表里的 [hidden]{display:none} 优先级最低，任何一条
+ * 作者写的 display 都能盖掉它。本项目 .modal{display:flex} 就把隐藏弹层
+ * 重新显示了出来 —— 肉眼看不见（背后有遮罩层盖着），但它占着 414×62 的
+ * 真实尺寸，于是"遥控器焦点导航"会把里面隐藏的按钮当成可达目标，
+ * 焦点一按就跑到看不见的按钮上。
+ *
+ * 这条兜底比逐条改 .modal 更稳：以后新增任何 [hidden] 元素都自动生效。 */
+[hidden] { display: none !important; }
+
+html, body {
+  margin: 0; padding: 0; height: 100%;
+  background: var(--paper);
+  color: var(--wood-dark);
+  font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", "PingFang SC",
+               "Hiragino Sans GB", "Microsoft YaHei", "Noto Sans CJK SC", sans-serif;
+  font-size: 16px;
+  overscroll-behavior-y: none;
+}
+
+body { display: flex; justify-content: center; }
+
+.app {
+  width: 100%; max-width: 560px; height: 100dvh;
+  display: flex; flex-direction: column;
+  background: var(--paper);
+  box-shadow: 0 0 24px rgba(62, 39, 35, .12);
+}
+
+/* ================= 收音机面板 ================= */
+
+.panel { background: var(--wood); padding: 12px 14px 10px; flex: none; }
+
+.brand {
+  font-size: 11px; letter-spacing: .14em; text-transform: uppercase;
+  color: #A1887F; margin-bottom: 6px;
+}
+.brand .ver { color: #8D6E63; letter-spacing: .06em; }
+
+.station-name {
+  color: var(--cream); font-size: 21px; font-weight: 700; line-height: 1.25;
+  white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+}
+.station-meta {
+  color: #D7CCC8; font-size: 12px; min-height: 16px; margin-top: 1px;
+  white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+}
+
+/* 调谐刻度条 */
+.tuner {
+  position: relative; height: 34px; margin-top: 9px;
+  background: var(--cream); border-radius: 3px; overflow: hidden;
+}
+.ticks {
+  position: absolute; inset: 0 6px;
+  display: flex; align-items: flex-start;
+}
+.ticks i {
+  flex: 1 1 0; height: 16px; margin-top: 18px;
+  border-left: 1px solid var(--tick);
+}
+.ticks i.major { height: 22px; margin-top: 12px; }
+.ticks i:last-child { border-right: 1px solid var(--tick); }
+
+/* 指针：待机时贴左侧静态，播放时来回摆动 */
+.needle {
+  position: absolute; top: 3px; bottom: 3px; left: 50%; width: 3px;
+  background: var(--needle); border-radius: 2px;
+  transform: translateX(-50%);
+  transition: left .35s cubic-bezier(.4, 0, .2, 1), opacity .25s;
+  opacity: .18;
+}
+.needle.live { opacity: 1; animation: sweep 7s ease-in-out infinite alternate; }
+@keyframes sweep {
+  from { left: 12%; } to { left: 88%; }
+}
+.needle.hold { opacity: .55; }
+
+.statusbar {
+  display: flex; align-items: center; gap: 8px;
+  margin-top: 7px; font-size: 12.5px; color: #D7CCC8;
+}
+.statusbar .spacer { flex: 1; }
+.badge {
+  font-size: 10px; letter-spacing: .08em; padding: 2px 7px; border-radius: 9px;
+  background: rgba(255, 248, 225, .14); color: #D7CCC8;
+}
+.badge.live { background: var(--needle); color: #fff; }
+.badge.buf  { background: #EF6C00; color: #fff; }
+.badge.err  { background: #B71C1C; color: #fff; }
+
+.icy {
+  margin-top: 6px; font-size: 13px; font-style: italic; color: #A5D6A7;
+  white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+}
+
+/* ================= 控制按钮 =================
+
+   竖屏（默认）：#panelCol 和 .controls 都用 display:contents 对布局"隐身" ——
+   .panel 和按钮看起来仍是上下相邻的两块，和没有包装层时完全一致。
+
+   注意 display:contents 会让元素本身不产生盒子，它原有的 flex/padding 等属性
+   一并失效 —— 所以必须显式给按钮加 flex:none 防止被外层 flex 容器拉伸，
+   并为 [hidden] 加兜底（见文件开头）。这两条都是踩过的坑。
+
+   电视横屏：两者换成真正的 flex / grid，才参与布局（见文件末尾电视布局段）。 */
+
+#panelCol { display: contents; }
+.controls { display: contents; }
+button {
+  font-family: inherit; font-size: 15px; cursor: pointer;
+  border: 1px solid var(--line); border-radius: 6px;
+  background: #fff; color: var(--wood-dark);
+  transition: transform .06s, background .15s, border-color .15s;
+}
+button:active { transform: scale(.97); }
+button:disabled { opacity: .45; cursor: not-allowed; }
+
+button.big { flex: 1; min-height: 48px; font-size: 15px; box-shadow: var(--shadow); }
+
+/* display:contents 的副作用修正（必须放在 button.big 之后 —— 同等特异性下
+   后出现的规则才生效；.controls 本身不产生盒子，它的 flex:none 起不到作用）。
+   不加这条，按钮会穿过 display:contents 变成 .app(flex-column) 的直接 flex 项，
+   被拉成整屏高的色块。 */
+.controls button.big { flex: none; }
+button.big.on { background: var(--needle); border-color: var(--needle); color: #fff; }
+button.small { min-height: 38px; padding: 0 10px; font-size: 13px; }
+button.icon { width: 42px; min-height: 42px; font-size: 18px; line-height: 1; }
+button.primary { background: var(--wood); border-color: var(--wood); color: var(--cream); }
+button.ghost { background: #fff; }
+
+/* ================= 工具栏 ================= */
+
+.toolbar {
+  display: flex; gap: 6px; padding: 4px 10px 0; flex: none;
+}
+input, select, textarea {
+  font-family: inherit; font-size: 14px; color: var(--wood-dark);
+  background: #fff; border: 1px solid var(--line); border-radius: 6px;
+  padding: 9px 10px; min-height: 42px; width: 100%;
+}
+input:focus, select:focus, textarea:focus {
+  outline: none; border-color: var(--wood);
+  box-shadow: 0 0 0 2px rgba(109, 76, 65, .12);
+}
+textarea { resize: vertical; line-height: 1.5; }
+.toolbar input { flex: 1; }
+.toolbar select { width: auto; min-width: 104px; flex: none; }
+
+.countline {
+  padding: 6px 12px 4px; font-size: 12px; color: var(--ink-lite); flex: none;
+}
+
+/* ================= 列表 ================= */
+
+.list {
+  list-style: none; margin: 0; padding: 0;
+  flex: 1; overflow-y: auto; -webkit-overflow-scrolling: touch;
+  border-top: 1px solid var(--line);
+}
+.list li {
+  display: flex; align-items: center; gap: 8px;
+  padding: 10px 12px; border-bottom: 1px solid var(--line);
+  cursor: pointer; background: transparent;
+}
+.list li:hover { background: rgba(109, 76, 65, .05); }
+.list li.playing { background: rgba(198, 40, 40, .07); }
+.list li .info { flex: 1; min-width: 0; }
+.list li .nm {
+  font-size: 15.5px; color: var(--wood-dark);
+  white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+}
+.list li .sb {
+  font-size: 12px; color: var(--ink-lite); margin-top: 2px;
+  white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+}
+.list li .now { color: var(--needle); font-size: 13px; width: 14px; text-align: center; }
+.list li .star { color: #F9A825; font-size: 14px; }
+.list.empty { display: flex; align-items: center; justify-content: center;
+  color: var(--ink-lite); font-size: 14px; padding: 30px 20px; text-align: center; }
+
+.list.compact li { padding: 9px 10px; }
+.list.compact .nm { font-size: 14.5px; }
+
+/* ================= 底部 ================= */
+
+.foot {
+  display: flex; flex-wrap: wrap; gap: 4px; padding: 6px 8px calc(8px + env(safe-area-inset-bottom));
+  border-top: 1px solid var(--line); flex: none; background: var(--paper);
+}
+button.link {
+  flex: 1 1 auto; min-height: 36px; font-size: 12.5px; color: var(--ink);
+  background: #fff; border-color: var(--line); padding: 0 8px; white-space: nowrap;
+}
+
+/* ================= Toast ================= */
+
+.toast {
+  position: fixed; left: 50%; bottom: 76px; transform: translateX(-50%);
+  max-width: 84vw; padding: 10px 16px; border-radius: 20px;
+  background: rgba(62, 39, 35, .93); color: #FFF8E1; font-size: 13.5px;
+  z-index: 90; animation: pop .18s ease-out;
+  box-shadow: 0 4px 14px rgba(0, 0, 0, .25);
+}
+@keyframes pop { from { opacity: 0; transform: translate(-50%, 8px); } }
+
+/* ================= 弹层 ================= */
+
+.modal {
+  position: fixed; inset: 0; z-index: 100;
+  background: rgba(62, 39, 35, .45);
+  display: flex; align-items: flex-end; justify-content: center;
+  animation: fade .16s ease-out;
+}
+@keyframes fade { from { opacity: 0; } }
+
+.sheet {
+  width: 100%; max-width: 560px; max-height: 88dvh; overflow-y: auto;
+  background: var(--paper); border-radius: 14px 14px 0 0;
+  padding: 16px 16px calc(16px + env(safe-area-inset-bottom));
+  animation: rise .2s cubic-bezier(.2, .8, .2, 1);
+}
+@keyframes rise { from { transform: translateY(24px); } }
+
+.sheet h3 {
+  margin: 0 0 12px; font-size: 17px; color: var(--wood-dark);
+  display: flex; align-items: baseline; gap: 8px;
+}
+.sheet h3 .sub { font-size: 11px; color: var(--ink-lite); font-weight: 400; }
+.sheet label { display: block; font-size: 13px; color: var(--ink); margin-bottom: 10px; }
+.sheet label input, .sheet label textarea { margin-top: 5px; }
+.sheet-btns { display: flex; gap: 8px; margin-top: 14px; }
+.sheet-btns button { flex: 1; min-height: 44px; }
+
+.sec-title {
+  font-size: 15px; font-weight: 700; color: var(--wood-dark);
+  margin: 18px 0 4px;
+}
+.sec-title:first-of-type { margin-top: 4px; }
+.sec-note { font-size: 12px; color: var(--ink); }
+
+.sleep-row { display: flex; gap: 6px; margin-top: 8px; }
+.sleep-row button { flex: 1; }
+.ok-line { margin-top: 6px; font-size: 13px; color: var(--ok); min-height: 18px; }
+
+.check {
+  display: flex; align-items: center; gap: 8px;
+  font-size: 14px; color: var(--wood-dark); margin: 10px 0; cursor: pointer;
+}
+.check input { width: 18px; height: 18px; min-height: 0; flex: none; accent-color: var(--wood); }
+
+.time-row { display: flex; align-items: center; gap: 6px; margin: 6px 0 8px; font-size: 14px; }
+.time-row input { width: 62px; text-align: center; flex: none; }
+.time-row .colon { font-size: 18px; }
+
+.label-line { font-size: 13px; color: var(--ink); margin: 6px 0; }
+.small { min-height: 38px; }
+
+.online-bar { display: flex; gap: 6px; }
+.online-bar input { flex: 1; }
+.online-bar select { width: auto; flex: none; }
+.online-hint { font-size: 12px; color: var(--ink); margin: 8px 0 6px; }
+.sheet .list { max-height: 42dvh; border: 1px solid var(--line); border-radius: 6px; }
+.ver-line { margin-top: 16px; font-size: 11px; color: var(--ink-lite); text-align: center; }
+
+.picklist { max-height: 50dvh; }
+
+@media (max-width: 380px) {
+  .toolbar select { min-width: 88px; font-size: 13px; }
+  .station-name { font-size: 19px; }
+  button.link { font-size: 11.5px; }
+}
+
+/* ================= 遥控器焦点样式 =================
+ *
+ * 电视上没鼠标，光标只有一种：遥控器。所以焦点框必须始终可见，
+ * 不能只在 :focus-visible（键盘 Tab）时才出现 —— 遥控器走的是我们自己
+ * 实现的导航，focus-visible 的启发式判断经常不认。 */
+
+.app :focus { outline: none; }
+
+.app :focus-visible,
+.app .tv-focus {
+  outline: 4px solid var(--needle);
+  outline-offset: -4px;
+  border-radius: 6px;
+  position: relative;
+  z-index: 5;
+}
+
+/* 列表项整行高亮，3 米外也看得见落在哪一条 */
+.list li.tv-focus {
+  background: rgba(198, 40, 40, .13);
+  outline-offset: -2px;
+}
+
+/* 正在播放的那条，即使失焦也留个位置感 */
+.list li.playing.tv-focus { background: rgba(198, 40, 40, .2); }
+
+/* ================= 电视（横屏大屏）布局 =================
+ *
+ * 触发条件看「够不够宽 + 够不够横」，不是看设备类型 —— 这样电视、平板横放、
+ * 桌面浏览器窗口拉宽都走同一套，而手机竖屏完全不受影响。
+ *
+ * 竖屏那套是为「手持、触摸、15cm 视距」设计的：单列、max-width 560px、小字号。
+ * 搬到电视上全不成立 —— 1920 宽的屏上 560px 就是中间一条缝，字号在 3 米外
+ * 基本看不清，而且电视没触摸屏。 */
+
+@media (orientation: landscape) and (min-width: 900px) {
+
+  body { justify-content: stretch; }
+
+  /* 左右两栏：左边固定宽度放"机身+控制"，右边放"电台列表"。
+     用 grid 而不是 flex，是因为要让两栏各自独立滚动。 */
+  .app {
+    max-width: none; width: 100%; height: 100dvh;
+    display: grid;
+    grid-template-columns: minmax(420px, 34vw) 1fr;
+    grid-template-rows: 1fr auto;
+    grid-template-areas:
+      "panel list"
+      "panel foot";
+    column-gap: 0;
+    box-shadow: none;
+  }
+
+  /* 左栏 = #panelCol（收音机面板 + 控制按钮），两行：面板居中、按钮置底。 */
+  #panelCol {
+    grid-area: panel;
+    display: flex; flex-direction: column;
+    padding: 3vh 3vw 2vh;
+    min-height: 0;
+  }
+  .panel { background: none; padding: 0; }
+  /* 面板主体垂直居中，按钮被 margin-top:auto 推到最底 */
+  .panel { display: flex; flex-direction: column; justify-content: center; margin: auto 0; }
+
+  .controls {
+    display: flex; gap: 14px; flex: none;
+  }
+  .toolbar  { display: none; }          /* 电视上没有软键盘，搜索框没意义 */
+  .countline{ display: none; }          /* 条数在列表标题里体现 */
+
+  .list {
+    grid-area: list; border-top: none;
+    border-left: 1px solid var(--line);
+    padding: 8px 0 0;
+  }
+
+  .foot { grid-area: foot; border-top: 1px solid var(--line); }
+  .foot button.link { font-size: 15px; min-height: 46px; }
+
+  /* ---- 字号整体放大：这是"3 米外看得清"的关键 ---- */
+  .brand          { font-size: 15px; }
+  .station-name   { font-size: 46px; line-height: 1.2; }
+  .station-meta   { font-size: 19px; min-height: 26px; }
+  .tuner          { height: 62px; margin-top: 18px; }
+  .ticks i        { height: 28px; margin-top: 32px; }
+  .ticks i.major  { height: 38px; margin-top: 22px; }
+  .statusbar      { font-size: 19px; margin-top: 14px; }
+  .badge          { font-size: 15px; padding: 4px 12px; border-radius: 12px; }
+  .icy            { font-size: 18px; margin-top: 12px; }
+
+  /* ---- 配色 ----
+     竖屏那套是「深木色面板 + 奶油色文字」。电视横屏把木色底去掉了
+     （整屏深色太重），奶油字压在米色背景上会糊成一片 —— 所以这里整体
+     换成深色文字。不改的话，电台名看着像没渲染完。 */
+  .brand        { color: var(--ink-lite); }
+  .brand .ver   { color: var(--ink-lite); }
+  .station-name { color: var(--wood-dark); }
+  .station-meta { color: var(--ink); }
+  .statusbar    { color: var(--ink); }
+  .badge        { background: rgba(109, 76, 65, .12); color: var(--ink); }
+  .icy          { color: var(--ok); }
+
+  /* 正在播放那条加一道左侧红杠 —— 电视上光靠底色太弱，扫一眼要能认出来 */
+  .list li.playing { border-left: 8px solid var(--needle); padding-left: 14px; }
+
+  button.big      { min-height: 78px; font-size: 26px; border-radius: 10px; }
+  .list li        { padding: 16px 22px; }
+  .list li .nm    { font-size: 25px; }
+  .list li .sb    { font-size: 17px; margin-top: 4px; }
+  .list li .now   { font-size: 21px; width: 24px; }
+  .list li .star  { font-size: 22px; }
+
+  .toast { font-size: 20px; padding: 16px 28px; bottom: 100px; max-width: 60vw; }
+
+  /* 弹层在电视上居中弹出（底部抽屉是手机的手势习惯） */
+  .modal { align-items: center; }
+  .sheet { border-radius: 16px; max-width: 900px; padding: 28px 32px; }
+  .sheet h3 { font-size: 26px; }
+  .sheet label { font-size: 19px; }
+  .sheet-btns button { min-height: 62px; font-size: 21px; }
+  .sec-title { font-size: 22px; }
+  .sec-note, .label-line, .online-hint { font-size: 17px; }
+  .check { font-size: 20px; }
+  .check input { width: 26px; height: 26px; }
+  .time-row { font-size: 20px; }
+  .time-row input { width: 96px; font-size: 20px; min-height: 56px; }
+  .sleep-row button { min-height: 56px; font-size: 19px; }
+  .list.compact .nm { font-size: 21px; }
+  .online-bar input, .online-bar select { font-size: 19px; min-height: 56px; }
+  .sheet .list { max-height: 46dvh; }
+}

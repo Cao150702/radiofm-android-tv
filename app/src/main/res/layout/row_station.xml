@@ -1,0 +1,71 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- 电台行。
+     电视上这行必须自身可聚焦 —— ListView 的 D-pad 导航靠的是行拿到焦点后
+     再触发 OnItemClickListener（KEYCODE_DPAD_CENTER），行不可聚焦就只能靠触摸。
+     加了 background 焦点选择器，遥控器走到哪一行一眼能看出。
+
+     字号走 TvRowName / TvRowSub：这两个 style 只在 values-land 里定义，
+     竖屏找不到就回落到标签自带的 textSize，所以手机版显示不变。 -->
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    android:layout_width="match_parent"
+    android:layout_height="wrap_content"
+    android:orientation="vertical"
+    android:focusable="true"
+    android:background="@drawable/row_focus">
+
+    <LinearLayout
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:orientation="horizontal"
+        android:gravity="center_vertical"
+        android:paddingLeft="20dp"
+        android:paddingRight="20dp"
+        android:paddingTop="12dp"
+        android:paddingBottom="12dp">
+
+        <TextView
+            android:id="@+id/row_now"
+            android:layout_width="28dp"
+            android:layout_height="wrap_content"
+            android:textColor="#2E7D32"
+            android:textSize="20sp"
+            android:textStyle="bold"
+            android:visibility="gone" />
+
+        <LinearLayout
+            android:layout_width="0dp"
+            android:layout_height="wrap_content"
+            android:layout_weight="1"
+            android:orientation="vertical">
+
+            <TextView
+                android:id="@+id/row_name"
+                style="@style/TvRowName"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:textSize="16sp"
+                android:textColor="#3E2723"
+                android:singleLine="true"
+                android:ellipsize="end" />
+
+            <TextView
+                android:id="@+id/row_sub"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:textSize="12sp"
+                android:textColor="#8D6E63"
+                android:singleLine="true"
+                android:ellipsize="end" />
+        </LinearLayout>
+
+        <TextView
+            android:id="@+id/row_star"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="★"
+            android:textColor="#FFB300"
+            android:textSize="22sp"
+            android:visibility="gone" />
+    </LinearLayout>
+
+</LinearLayout>

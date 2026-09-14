@@ -1,0 +1,39 @@
+<?xml version="1.0" encoding="utf-8"?>
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    android:layout_width="match_parent"
+    android:layout_height="wrap_content"
+    android:orientation="vertical"
+    android:padding="12dp">
+
+    <TextView android:layout_width="wrap_content" android:layout_height="wrap_content"
+        android:text="电台名称" android:textSize="13sp" />
+
+    <EditText
+        android:id="@+id/add_name"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:hint="例：香港电台 RTHK Radio 1"
+        android:inputType="text"
+        android:singleLine="true" />
+
+    <TextView android:layout_width="wrap_content" android:layout_height="wrap_content"
+        android:layout_marginTop="8dp"
+        android:text="流地址（可填多个，用 | 分隔作为备用）" android:textSize="13sp" />
+
+    <EditText
+        android:id="@+id/add_url"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:hint="http://stm.rthk.hk/radio1"
+        android:inputType="textUri"
+        android:singleLine="true" />
+
+    <TextView
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:layout_marginTop="8dp"
+        android:textSize="11sp"
+        android:textColor="#8D6E63"
+        android:text="提示：必须是 HTTP/HTTPS 的 MP3/AAC 直链。m3u8(HLS) 地址在 Android 4.4 上无法播放。" />
+
+</LinearLayout>
