@@ -50,6 +50,17 @@
             android:label="@string/settings"
             android:parentActivityName=".MainActivity" />
 
+        <!-- 在线电台库。
+             这个 Activity 之前一直没在这里声明 —— 菜单里点「浏览在线电台库」
+             会直接抛 ActivityNotFoundException 把应用干掉。因为以前菜单只能靠
+             硬件菜单键打开（电视遥控器上没有），这个崩溃一直没被发现；
+             加上「更多」按钮后才暴露出来。 -->
+        <activity
+            android:name=".OnlineBrowserActivity"
+            android:configChanges="orientation|screenSize|keyboardHidden"
+            android:label="在线电台库"
+            android:parentActivityName=".MainActivity" />
+
         <service
             android:name=".RadioService"
             android:exported="false" />
