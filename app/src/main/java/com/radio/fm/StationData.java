@@ -15,6 +15,15 @@ import java.util.List;
  * Winamp 的 UA，于是每个蜻蜓地址都被误判成失效。
  * Android MediaPlayer 的默认 UA 实测可以通过，本表大量使用蜻蜓地址。
  *
+ * ── 关于 https 备用地址 ──
+ * 蜻蜓系的台普遍能同时走 https 和 http（实测同路径换协议即可）。
+ * 这里把 http 版放在**备用位**（第二个），因为 Android 4.4 的坑不同：
+ *   · 4.4 系统支持 TLS 1.2 但默认只启用 TLS 1.0，而 MediaPlayer 用的是
+ *     **native TLS 栈**，Tls12.java 里那个 HttpsURLConnection 补丁对它无效；
+ *   · 所以 https 流在 4.4 上可能握手失败，此时会自动回落到 http 那条。
+ * 放在备用位而不是首位，是为了让新系统优先走 https（更安全），
+ * 而 4.4 老机器失败后能自动降级 —— 正好对上 RadioService 的「逐条试地址」逻辑。
+ *
  * ── 关于 HLS ──
  * 本表已剔除 .m3u8 / HLS 流 —— Android 4.4 的 MediaPlayer 不支持。
  * radio-browser.info 上很多高票中文台是 HLS，取用时必须过滤。
@@ -32,17 +41,22 @@ public final class StationData {
 
         // ================= 大陆 · 中央台 =================
         list.add(new Station("中国之声 CNR-1", "新闻", "中央",
-                "https://lhttp.qtfm.cn/live/15318317/64k.mp3"));      // v=9932
+                "https://lhttp.qtfm.cn/live/15318317/64k.mp3",
+                "http://lhttp.qtfm.cn/live/15318317/64k.mp3"));      // v=9932
 
         // ================= 大陆 · 北京 =================
         list.add(new Station("北京新闻广播", "新闻", "北京",
-                "https://lhttp.qtfm.cn/live/339/64k.mp3"));           // v=1198
+                "https://lhttp.qtfm.cn/live/339/64k.mp3",
+                "http://lhttp.qtfm.cn/live/339/64k.mp3"));           // v=1198
         list.add(new Station("北京交通广播", "交通", "北京",
-                "https://lhttp.qingting.fm/live/336/64k.mp3"));       // v=637
+                "https://lhttp.qingting.fm/live/336/64k.mp3",
+                "http://lhttp.qingting.fm/live/336/64k.mp3"));       // v=637
         list.add(new Station("北京文艺广播", "文艺", "北京",
-                "https://lhttp.qtfm.cn/live/333/64k.mp3"));           // v=539
+                "https://lhttp.qtfm.cn/live/333/64k.mp3",
+                "http://lhttp.qtfm.cn/live/333/64k.mp3"));           // v=539
         list.add(new Station("北京音乐广播", "音乐", "北京",
-                "https://lhttp.qtfm.cn/live/332/64k.mp3"));           // v=355
+                "https://lhttp.qtfm.cn/live/332/64k.mp3",
+                "http://lhttp.qtfm.cn/live/332/64k.mp3"));           // v=355
 
         // ================= 大陆 · 上海 =================
         list.add(new Station("上海新闻广播", "新闻", "上海",
@@ -50,7 +64,8 @@ public final class StationData {
         list.add(new Station("上海东广新闻台", "新闻", "上海",
                 "http://lhttp.qingting.fm/live/275/64k.mp3"));        // v=375
         list.add(new Station("上海动感101", "流行", "上海",
-                "https://lhttp.qingting.fm/live/274/64k.mp3"));       // v=774
+                "https://lhttp.qingting.fm/live/274/64k.mp3",
+                "http://lhttp.qingting.fm/live/274/64k.mp3"));       // v=774
         list.add(new Station("上海经典音乐广播", "经典", "上海",
                 "http://lhttp.qingting.fm/live/267/64k.mp3"));        // v=531
         list.add(new Station("上海音乐广播", "音乐", "上海",
@@ -58,17 +73,23 @@ public final class StationData {
 
         // ================= 大陆 · 广东 =================
         list.add(new Station("广东新闻广播", "新闻", "广东",
-                "https://lhttp.qtfm.cn/live/1254/64k.mp3"));          // v=1225
+                "https://lhttp.qtfm.cn/live/1254/64k.mp3",
+                "http://lhttp.qtfm.cn/live/1254/64k.mp3"));          // v=1225
         list.add(new Station("广东珠江经济台", "经济", "广东",
-                "https://lhttp.qtfm.cn/live/1259/64k.mp3"));          // v=1871
+                "https://lhttp.qtfm.cn/live/1259/64k.mp3",
+                "http://lhttp.qtfm.cn/live/1259/64k.mp3"));          // v=1871
         list.add(new Station("广东音乐之声", "音乐", "广东",
-                "https://lhttp.qtfm.cn/live/1260/64k.mp3"));          // v=1261
+                "https://lhttp.qtfm.cn/live/1260/64k.mp3",
+                "http://lhttp.qtfm.cn/live/1260/64k.mp3"));          // v=1261
         list.add(new Station("广东交通之声", "交通", "广东",
-                "https://lhttp.qtfm.cn/live/1262/64k.mp3"));          // v=992
+                "https://lhttp.qtfm.cn/live/1262/64k.mp3",
+                "http://lhttp.qtfm.cn/live/1262/64k.mp3"));          // v=992
         list.add(new Station("广东股市广播", "财经", "广东",
-                "https://lhttp.qtfm.cn/live/4847/64k.mp3"));          // v=902
+                "https://lhttp.qtfm.cn/live/4847/64k.mp3",
+                "http://lhttp.qtfm.cn/live/4847/64k.mp3"));          // v=902
         list.add(new Station("广东城市之声", "综合", "广东",
-                "https://lhttp.qtfm.cn/live/469/64k.mp3"));           // v=515
+                "https://lhttp.qtfm.cn/live/469/64k.mp3",
+                "http://lhttp.qtfm.cn/live/469/64k.mp3"));           // v=515
         list.add(new Station("深圳新闻广播", "新闻", "深圳",
                 "http://lhttp.qingting.fm/live/1270/64k.mp3"));       // v=1167
         list.add(new Station("广州金曲音乐广播", "音乐", "广州",
@@ -76,35 +97,44 @@ public final class StationData {
         list.add(new Station("广州新闻资讯广播", "新闻", "广州",
                 "http://lhttp.qingting.fm/live/4848/64k.mp3"));       // v=559
         list.add(new Station("顺德音乐之声", "音乐", "佛山",
-                "https://lhttp.qtfm.cn/live/20500150/64k.mp3"));      // v=602
+                "https://lhttp.qtfm.cn/live/20500150/64k.mp3",
+                "http://lhttp.qtfm.cn/live/20500150/64k.mp3"));      // v=602
 
         // ================= 大陆 · 其他省市 =================
         list.add(new Station("四川新闻广播", "新闻", "四川",
-                "https://lhttp.qtfm.cn/live/4906/64k.mp3"));          // v=421
+                "https://lhttp.qtfm.cn/live/4906/64k.mp3",
+                "http://lhttp.qtfm.cn/live/4906/64k.mp3"));          // v=421
         list.add(new Station("江苏经典流行音乐广播", "经典", "江苏",
-                "https://lhttp.qtfm.cn/live/4938/64k.mp3"));          // v=366
+                "https://lhttp.qtfm.cn/live/4938/64k.mp3",
+                "http://lhttp.qtfm.cn/live/4938/64k.mp3"));          // v=366
         list.add(new Station("河南星河音乐广播", "音乐", "河南",
                 "http://lhttp.qingting.fm/live/20210755/64k.mp3"));   // v=362
         list.add(new Station("郑州新闻广播", "新闻", "河南",
                 "http://lhttp.qingting.fm/live/1220/64k.mp3"));       // v=402
         list.add(new Station("济南故事广播", "故事", "山东",
-                "https://lhttp.qtfm.cn/live/1672/64k.mp3"));          // v=687
+                "https://lhttp.qtfm.cn/live/1672/64k.mp3",
+                "http://lhttp.qtfm.cn/live/1672/64k.mp3"));          // v=687
         list.add(new Station("安徽小说评书广播", "评书", "安徽",
-                "https://lhttp.qtfm.cn/live/1951/64k.mp3"));          // v=1675
+                "https://lhttp.qtfm.cn/live/1951/64k.mp3",
+                "http://lhttp.qtfm.cn/live/1951/64k.mp3"));          // v=1675
         list.add(new Station("长沙 BIG RADIO 流行音乐", "流行", "湖南",
                 "http://lhttp.qingting.fm/live/20847/64k.mp3"));      // v=365
 
         // ================= 大陆 · 网络台（非蜻蜓源）=================
         list.add(new Station("CityFM 城市音乐台", "音乐", "网络",
-                "https://lhttp.qtfm.cn/live/20500153/64k.mp3"));      // v=569
+                "https://lhttp.qtfm.cn/live/20500153/64k.mp3",
+                "http://lhttp.qtfm.cn/live/20500153/64k.mp3"));      // v=569
         list.add(new Station("MY FM 全国音乐频道", "音乐", "网络",
                 "http://lhttp.qingting.fm/live/20194/64k.mp3"));      // v=449
         list.add(new Station("雨声轻音乐", "轻音乐", "网络",
-                "https://stream.zeno.fm/689zc32y4x8uv"));             // v=2488，助眠用
+                "https://stream.zeno.fm/689zc32y4x8uv",
+                "http://stream.zeno.fm/689zc32y4x8uv"));             // v=2488，助眠用
         list.add(new Station("德云社相声合集", "相声", "网络",
-                "https://stream.zeno.fm/yqawwmweq8mtv"));             // v=2393
+                "https://stream.zeno.fm/yqawwmweq8mtv",
+                "http://stream.zeno.fm/yqawwmweq8mtv"));             // v=2393
         list.add(new Station("BBN 中文", "宗教", "网络",
-                "https://streams.radiomast.io/ce298b32-8776-4192-9900-092f44b63e7f")); // v=1336
+                "https://streams.radiomast.io/ce298b32-8776-4192-9900-092f44b63e7f",
+                "http://streams.radiomast.io/ce298b32-8776-4192-9900-092f44b63e7f")); // v=1336
 
         // ================= 港台 =================
         list.add(new Station("香港电台 RTHK Radio 1", "综合", "香港",
@@ -120,7 +150,8 @@ public final class StationData {
         list.add(new Station("香港电台 RTHK 普通话台", "普通话", "香港",
                 "http://stm.rthk.hk/radiopth"));
         list.add(new Station("香港国际机场塔台 VHHH", "航空", "香港",
-                "https://s1-fmt2.liveatc.net/vhhh5"));
+                "https://s1-fmt2.liveatc.net/vhhh5",
+                "http://s1-fmt2.liveatc.net/vhhh5"));
 
         // ================= 亚洲调频 AsiaFM =================
         list.add(new Station("AsiaFM 高清音乐台", "音乐", "网络",
@@ -139,21 +170,28 @@ public final class StationData {
                 "http://pool.anison.fm:9000/AniSonFM(320)"));
         list.add(new Station("Big B Radio 亚洲音乐台", "亚洲流行", "网络",
                 "https://antares.dribbcast.com/proxy/apop?mp=/s",
-                "https://antares.dribbcast.com/proxy/cpop?mp=/s"));
+                "https://antares.dribbcast.com/proxy/cpop?mp=/s",
+                "http://antares.dribbcast.com/proxy/apop?mp=/s"));
         list.add(new Station("Chinese Music World 华语音乐", "华语", "网络",
-                "https://radio.chinesemusicworld.com/chinesemusic.mp3"));
+                "https://radio.chinesemusicworld.com/chinesemusic.mp3",
+                "http://radio.chinesemusicworld.com/chinesemusic.mp3"));
         list.add(new Station("Acast 华语电台", "综合", "网络",
-                "https://acast01.kolorboxlab.com/radio/8010/radio.mp3"));
+                "https://acast01.kolorboxlab.com/radio/8010/radio.mp3",
+                "http://acast01.kolorboxlab.com/radio/8010/radio.mp3"));
         list.add(new Station("法国国际广播 RFI 中文", "新闻", "法国",
-                "https://rfienchinois64k.ice.infomaniak.ch/rfienchinois-64.mp3"));
+                "https://rfienchinois64k.ice.infomaniak.ch/rfienchinois-64.mp3",
+                "http://rfienchinois64k.ice.infomaniak.ch/rfienchinois-64.mp3"));
         list.add(new Station("Fred Film Radio 中文", "影视", "国际",
-                "https://s10.webradio-hosting.com/proxy/fredradiocn/stream"));
+                "https://s10.webradio-hosting.com/proxy/fredradiocn/stream",
+                "http://s10.webradio-hosting.com/proxy/fredradiocn/stream"));
         list.add(new Station("Radio Maria Chinese", "宗教", "国际",
-                "https://onair7.xdevel.com/proxy/xautocloud_nwct_1310?mp=/;"));
+                "https://onair7.xdevel.com/proxy/xautocloud_nwct_1310?mp=/;",
+                "http://onair7.xdevel.com/proxy/xautocloud_nwct_1310?mp=/;"));
         list.add(new Station("Lam Rim 藏传佛教电台", "宗教", "国际",
                 "http://199.180.72.2:9097/lamrim"));
         list.add(new Station("Swiss News 瑞士新闻", "新闻", "瑞士",
-                "https://replaynewszh.ice.infomaniak.ch/replaynewszh-128.mp3"));
+                "https://replaynewszh.ice.infomaniak.ch/replaynewszh-128.mp3",
+                "http://replaynewszh.ice.infomaniak.ch/replaynewszh-128.mp3"));
         list.add(new Station("Curiosity 电台", "综合", "国际",
                 "http://curiosity.shoutca.st:8019/stream"));
 

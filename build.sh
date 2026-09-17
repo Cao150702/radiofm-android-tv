@@ -26,8 +26,10 @@ GRADLE="${GRADLE:-/tmp/gradle-dist/gradle-8.7/bin/gradle}"
 LOG=$(mktemp)
 trap 'rm -f "$LOG"' EXIT
 
+# 不加 --offline：全新克隆时 AGP 插件还没进 Gradle 缓存，离线模式会直接失败。
+# 有缓存时联网构建也只是查一下版本，代价可忽略。
 run_build() {
-  "$GRADLE" assembleDebug --offline "$@" > "$LOG" 2>&1
+  "$GRADLE" assembleDebug "$@" > "$LOG" 2>&1
 }
 
 echo "→ 构建中…"
