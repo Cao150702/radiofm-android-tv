@@ -8,11 +8,15 @@
 ## 构建
 
 ```bash
-# 需要：JDK 17+、Android SDK（platform-35 + build-tools 34）
-./gradlew assembleDebug
+# 需要：JDK 17+、Android SDK（platform-35 + build-tools 35）、Gradle 8.7
+./build.sh
 ```
 
-产物：`app/build/outputs/apk/debug/app-debug.apk`（约 115KB）
+产物：`app/build/outputs/apk/debug/app-debug.apk`（约 150KB）
+
+不用 `gradle assembleDebug` 直接构建：本机 Gradle 的增量状态很容易坏
+（报 `Failed to create MD5 hash for file content`，错误信息完全指不到真因）。
+`build.sh` 会在命中这个症状时自动清 `app/build` 重来。
 
 `local.properties` 里的 `sdk.dir` 指向本机 SDK 路径，已 gitignore。
 
@@ -64,8 +68,21 @@ android:banner="@drawable/tv_banner"    <!-- 电视桌面图标 -->
 
 ## 电台源
 
-内置 54 个台，全部实测可播放（2026-09-14）：大陆 27 个（中央台 + 京沪粤深 +
-川苏豫鲁皖湘）、港台 7 个、网络/国际 20 个。
+内置 427 个台，2026-09-21 全部实测（只有 1 个 404 死台，已删）。
+
+| 类别 | 数量 | 说明 |
+|---|---|---|
+| 蜻蜓地方台 | 309 | 县市级电台（兰考/商丘/万宁/库尔勒…），按省归类 |
+| 大陆省市台 | 27 | 中央台 + 京沪粤深 + 川苏豫鲁皖湘 |
+| 央广·卫视 | 66 | 中国之声 + 28 省级卫视伴音 + 央广官方 13 + CCTV/CETV 24 |
+| 港澳台 | 7 | RTHK 六个台 + 香港机场塔台 |
+| 网络 / 国际 | 18 | AsiaFM、zeno.fm、RFI、Swiss News 等 |
+
+**Android 4.4 与 9 的区分**：HLS（`.m3u8`）流 4.4 的 MediaPlayer 不支持，
+共 65 个（央广官方 + CCTV/卫视伴音）。`Station.isHls()` 从地址推导，
+不靠单独字段标记 —— 曾经用 region 兼职这件事，重分类时标记漂了，
+那批台就在 4.4 的「全部频道」里露出来、点了不出声。
+4.4 上「全部频道」自动隐藏它们（362 台），新系统全部列出（427 台）。
 
 ### ⚠️ 蜻蜓FM 不是「已死」，是 UA 黑名单
 
