@@ -47,6 +47,20 @@ public class OnlineBrowserActivity extends Activity {
     private static final String TAG = "OnlineBrowser";
 
     // radio-browser 的镜像节点，按顺序试
+    /**
+     * 本机能不能播 HLS（Android 5.0+ 的 MediaPlayer 才支持）。
+     *
+     * 之前这个界面**无条件过滤 HLS**（注释写着"4.4 播不了"），
+     * 于是在安卓 9 手机上，在线库里能播的 HLS 台反而被一律滤掉了 ——
+     * 那个注释描述的约束只对 4.4 成立。现在按运行时版本判断。
+     */
+    private static final boolean HLS_OK = android.os.Build.VERSION.SDK_INT >= 21;
+
+    /** 内置央广·卫视按钮；某些布局里可能没有，靠 null 判断 */
+    private static final int ONLINE_A9_BTN = R.id.online_a9;
+    /** 按钮文字显示"按下去会去哪" */
+    private static final String A9_BTN_TEXT = HLS_OK ? "央广·卫视（内置）" : "央广·卫视（本机不支持）";
+
     private static final String[] MIRRORS = {
             "https://de1.api.radio-browser.info",
             "https://nl1.api.radio-browser.info",
@@ -60,6 +74,16 @@ public class OnlineBrowserActivity extends Activity {
     private OnlineAdapter adapter;
     private final List<Station> results = new ArrayList<Station>();
     private String country = "CN";
+
+    /**
+     * 是否只展示内置的「央广·卫视」。
+     *
+     * 内置那批 HLS 台（央广官方 / CCTV / 卫视伴音）固定在应用里，不该跟
+     * 在线搜索的结果混在一起 —— 所以做成互斥的两种模式，进页面点按钮切换。
+     */
+    private boolean builtinMode = false;
+
+
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -91,6 +115,25 @@ public class OnlineBrowserActivity extends Activity {
         });
 
         bindCountryButtons();
+
+        // 「央广·卫视（内置）」：切到应用自带的 HLS 台，不走网络搜索。
+        // 这是原来放在主界面「更多」菜单里的那个入口 —— 挪到这里更合适：
+        // 它本质是"另一批频率"，跟在线库的定位一致。
+        Button a9Btn = (Button) findViewById(ONLINE_A9_BTN);
+        if (a9Btn != null) {
+            a9Btn.setText(A9_BTN_TEXT);
+            a9Btn.setOnClickListener(new View.OnClickListener() {
+                @Override public void onClick(View v) {
+                    builtinMode = !builtinMode;
+                    ((Button) v).setText(A9_BTN_TEXT);
+                    if (builtinMode) {
+                        showBuiltinA9();
+                    } else {
+                        doSearch(searchBox.getText().toString().trim());
+                    }
+                }
+            });
+        }
 
         // 遥控器：确认键自己接管。
         // ListView 自带的 DPAD_CENTER 处理在这里不触发 onItemClick（主界面踩过同样的坑），
@@ -209,6 +252,27 @@ public class OnlineBrowserActivity extends Activity {
         Toast.makeText(this, "已加入我的电台", Toast.LENGTH_SHORT).show();
     }
 
+    /**
+     * 展示内置的「央广·卫视」（HLS 台）。
+     *
+     * 这批台固定在应用里，不走 radio-browser 搜索 —— 所以单独一个方法，
+     * 而不是往 query() 里塞分支。
+     */
+    private void showBuiltinA9() {
+        final List<Station> a9 = new ArrayList<Station>();
+        for (Station s : StationData.builtIn()) {
+            if (s.isHls()) a9.add(s);      // 按地址判定，不看 region
+        }
+        results.clear();
+        results.addAll(a9);
+        adapter.notifyDataSetChanged();
+        hint.setText(HLS_OK
+                ? "内置央广·卫视 · 共 " + a9.size() + " 个（HLS 流，本机可播）"
+                : "内置央广·卫视 · 共 " + a9.size() + " 个 · 本机是 Android 4.4，播不了 HLS，仅供查看");
+        list.requestFocus();
+        list.setSelection(0);
+    }
+
     private void doSearch(final String q) {
         hint.setText("查询中…");
         new Thread(new Runnable() {
@@ -217,12 +281,15 @@ public class OnlineBrowserActivity extends Activity {
                 final List<Station> f = found;
                 runOnUiThread(new Runnable() {
                     @Override public void run() {
+                        builtinMode = false;          // 搜索即退出内置频道模式
+                        Button ab = (Button) findViewById(ONLINE_A9_BTN);
+                        if (ab != null) ab.setText(A9_BTN_TEXT);
                         results.clear();
                         results.addAll(f);
                         adapter.notifyDataSetChanged();
                         hint.setText(f.isEmpty()
                                 ? "没有结果（换个关键词，或该地区源不支持）"
-                                : "共 " + f.size() + " 个（已过滤 HLS 流）");
+                                : "共 " + f.size() + " 个" + (HLS_OK ? "" : "（4.4 已过滤 HLS 流）"));
                     }
                 });
             }
@@ -261,7 +328,7 @@ public class OnlineBrowserActivity extends Activity {
                     String url  = o.optString("url_resolved", "");
                     if (url.length() == 0) url = o.optString("url", "");
                     if (name.length() == 0 || url.length() == 0) continue;
-                    if (o.optInt("hls", 0) == 1) continue;          // 4.4 播不了 HLS
+                    if (!HLS_OK && o.optInt("hls", 0) == 1) continue;   // 仅 4.4 需要滤掉 HLS
                     if (name.startsWith("http")) continue;           // 有些条目名字就是地址
                     int br = o.optInt("bitrate", 0);
                     out.add(new Station(name, o.optString("codec", "?"), br > 0 ? br + "kbps" : "未知码率", url));

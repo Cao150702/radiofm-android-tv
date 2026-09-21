@@ -43,6 +43,12 @@
         <Button android:id="@+id/cn_all" style="@style/TvSmallButton"
             android:layout_width="0dp" android:layout_weight="1" android:layout_height="64dp"
             android:layout_marginLeft="10dp" android:text="全部" />
+
+        <!-- 内置的央广·卫视（HLS 台）。跟在线搜索互斥：
+             点它切到应用自带的央广官方/CCTV/卫视伴音，再点回到搜索。 -->
+        <Button android:id="@+id/online_a9" style="@style/TvSmallButton"
+            android:layout_width="0dp" android:layout_weight="1.4" android:layout_height="64dp"
+            android:layout_marginLeft="10dp" android:text="央广·卫视（内置）" />
     </LinearLayout>
 
     <!-- 隐藏的原控件：Java 里 findViewById 和 setText 照常用，只是不显示 -->
@@ -88,6 +94,6 @@
         android:layout_height="wrap_content"
         android:padding="20dp"
         style="@style/TvListHint"
-        android:text="数据来自 radio-browser.info。已过滤 Android 4.4 不支持的 HLS 流。" />
+        android:text="数据来自 radio-browser.info。央广·卫视为内置台；Android 4.4 上会自动过滤 HLS 流。" />
 
 </LinearLayout>

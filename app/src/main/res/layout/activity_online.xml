@@ -51,6 +51,14 @@
             android:minWidth="80dp"
             android:text="中国大陆" />
 
+        <!-- 内置的央广·卫视（HLS 台），与在线搜索互斥 -->
+        <Button
+            android:id="@+id/online_a9"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_marginLeft="6dp"
+            android:text="央广·卫视" />
+
         <TextView
             android:id="@+id/online_hint"
             android:layout_width="0dp"

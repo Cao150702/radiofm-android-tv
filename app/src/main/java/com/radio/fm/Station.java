@@ -24,6 +24,22 @@ public class Station {
         return urls.length > 0 ? urls[0] : null;
     }
 
+    /**
+     * 是否 HLS 流（.m3u8）—— Android 4.4 的 MediaPlayer 播不了。
+     *
+     * **从地址推导，不靠单独字段记。**
+     * 曾经用 region="安卓9" 兼职标记这件事，结果后来把 28 个省级卫视的
+     * region 从省份改到「中央」时，标记没跟着走 —— 那些台在 4.4 上就
+     * 混进了「全部频道」，点了不出声。内容分类变、技术标记漂，是设计问题；
+     * 从地址推导则不可能不一致。
+     */
+    public boolean isHls() {
+        for (String u : urls) {
+            if (u != null && u.contains(".m3u8")) return true;
+        }
+        return false;
+    }
+
     /** 列表里的副标题：地区 · 分类 · 音质 */
     public String subtitle() {
         StringBuilder sb = new StringBuilder();

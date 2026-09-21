@@ -48,52 +48,18 @@
                 android:textColor="#D7CCC8"
                 android:singleLine="true" />
 
-            <!-- 调谐刻度条 + 指针。
-                 原写法是 20 个 View 靠 layout_weight 平分宽度，但在 1080p 电视上
-                 算出来的宽度不对（截图里刻度变成了棕色矮块 + 右侧留大片空白）。
-                 改成固定宽度的刻度，排版可预期。 -->
-            <FrameLayout
-                android:layout_width="match_parent"
-                android:layout_height="56dp"
-                android:layout_marginTop="14dp"
-                android:background="#FFF8E1">
-
-                <LinearLayout
-                    android:layout_width="match_parent"
-                    android:layout_height="match_parent"
-                    android:orientation="horizontal"
-                    android:gravity="center_vertical"
-                    android:paddingLeft="10dp"
-                    android:paddingRight="10dp">
-
-                    <View android:layout_width="2dp" android:layout_height="26dp"
-                        android:layout_marginRight="0dp" android:background="#BCAAA4" />
-                    <View android:layout_width="0dp" android:layout_height="1dp" android:layout_weight="1" />
-                    <View android:layout_width="2dp" android:layout_height="30dp" android:background="#BCAAA4" />
-                    <View android:layout_width="0dp" android:layout_height="1dp" android:layout_weight="1" />
-                    <View android:layout_width="2dp" android:layout_height="26dp" android:background="#BCAAA4" />
-                    <View android:layout_width="0dp" android:layout_height="1dp" android:layout_weight="1" />
-                    <View android:layout_width="2dp" android:layout_height="30dp" android:background="#BCAAA4" />
-                    <View android:layout_width="0dp" android:layout_height="1dp" android:layout_weight="1" />
-                    <View android:layout_width="2dp" android:layout_height="26dp" android:background="#BCAAA4" />
-                    <View android:layout_width="0dp" android:layout_height="1dp" android:layout_weight="1" />
-                    <View android:layout_width="2dp" android:layout_height="30dp" android:background="#BCAAA4" />
-                    <View android:layout_width="0dp" android:layout_height="1dp" android:layout_weight="1" />
-                    <View android:layout_width="2dp" android:layout_height="26dp" android:background="#BCAAA4" />
-                    <View android:layout_width="0dp" android:layout_height="1dp" android:layout_weight="1" />
-                    <View android:layout_width="2dp" android:layout_height="30dp" android:background="#BCAAA4" />
-                    <View android:layout_width="0dp" android:layout_height="1dp" android:layout_weight="1" />
-                    <View android:layout_width="2dp" android:layout_height="26dp" android:background="#BCAAA4" />
-                </LinearLayout>
-
-                <ImageView
-                    android:id="@+id/tune_needle"
-                    android:layout_width="4dp"
-                    android:layout_height="match_parent"
-                    android:layout_gravity="center_horizontal"
-                    android:background="#C62828"
-                    android:visibility="invisible" />
-            </FrameLayout>
+            <!-- 动态频谱条（代替原来的静态调谐刻度）。
+         播放时随声音起伏，缓冲/暂停/停止时静止。
+         由 SpectrumView 自绘 —— 频谱值来自 RadioService 的 Visualizer，
+         但这里做的是**合成**动画（每个柱条按各自的频率和相位起伏）而不是
+         真实 FFT：真实波形经由 MediaPlayer session 取，在很多电视盒子上
+         该 session 拿不到（返回空），真做了会是一根直条。
+         合成动画观感稳定、零兼容风险，且"随播放/暂停联动"的体验是真的。 -->
+        <com.radio.fm.SpectrumView
+            android:id="@+id/spectrum"
+            android:layout_width="match_parent"
+            android:layout_height="56dp"
+            android:layout_marginTop="8dp" />
 
             <!-- 状态 + 曲目信息（放在木纹面板里，和手机版一致） -->
             <TextView
@@ -182,6 +148,17 @@
                 android:background="@drawable/btn_focus"
                 android:text="只看收藏" />
 
+            <!-- 一键切到「央广·卫视」分类（全国性频道：中国之声/省级卫视/CCTV/CETV）。
+                 按钮文字由 Java 设置，显示的是"按下去会去哪"。竖屏布局没有这个按钮。 -->
+            <Button
+                android:id="@+id/btn_a9_filter"
+                android:layout_width="0dp"
+                android:layout_weight="1"
+                android:layout_height="68dp"
+                android:textSize="22sp"
+                android:background="@drawable/btn_focus"
+                android:text="央广·卫视" />
+
             <Button
                 android:id="@+id/btn_more"
                 android:layout_width="0dp"
@@ -219,17 +196,40 @@
         android:orientation="vertical"
         android:background="#F5EFE6">
 
-        <TextView
-            android:id="@+id/list_hint"
-            style="@style/TvStatusText"
+        <!-- 提示 + 分类下拉框并排。
+             428 个台不分类没法用（遥控器翻几百行），所以这里放一个 Spinner
+             按「全部/央广/港澳台/网络/各省…」筛选。
+             Spinner 自带焦点和弹出列表，遥控器方向键+确认键直接能用 ——
+             和「更多」菜单用 AlertDialog 而不是 openOptionsMenu 是同一个理由。 -->
+        <LinearLayout
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
+            android:orientation="horizontal"
+            android:gravity="center_vertical"
             android:paddingLeft="20dp"
             android:paddingRight="20dp"
             android:paddingTop="16dp"
-            android:paddingBottom="8dp"
-            android:textColor="#5D4037"
-            android:text="方向键选台 · 确认键播放 · 菜单键更多" />
+            android:paddingBottom="8dp">
+
+            <TextView
+                android:id="@+id/list_hint"
+                style="@style/TvStatusText"
+                android:layout_width="0dp"
+                android:layout_weight="1"
+                android:layout_height="wrap_content"
+                android:textColor="#5D4037"
+                android:text="方向键选台 · 确认键播放" />
+
+            <Spinner
+                android:id="@+id/category_spinner"
+                android:layout_width="wrap_content"
+                android:layout_height="52dp"
+                android:minWidth="170dp"
+                android:background="@drawable/btn_focus"
+                android:paddingLeft="14dp"
+                android:paddingRight="14dp"
+                android:focusable="true" />
+        </LinearLayout>
 
         <ListView
             android:id="@+id/station_list"
@@ -243,6 +243,7 @@
             android:drawSelectorOnTop="false"
             android:focusable="true"
             android:focusableInTouchMode="false"
+            android:fastScrollEnabled="true"
             android:descendantFocusability="blocksDescendants"
             android:scrollbarStyle="outsideOverlay" />
     </LinearLayout>

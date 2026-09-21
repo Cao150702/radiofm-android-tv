@@ -1,0 +1,6 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <!-- 自适应图标的背景色。取主界面的深木色，让前景的透明区域有底可透，
+         而不是启动器默认的白底。 -->
+    <color name="icon_bg">#6D4C41</color>
+</resources>
