@@ -56,10 +56,8 @@ public class OnlineBrowserActivity extends Activity {
      */
     private static final boolean HLS_OK = android.os.Build.VERSION.SDK_INT >= 21;
 
-    /** 内置央广·卫视按钮；某些布局里可能没有，靠 null 判断 */
-    private static final int ONLINE_A9_BTN = R.id.online_a9;
-    /** 按钮文字显示"按下去会去哪" */
-    private static final String A9_BTN_TEXT = HLS_OK ? "央广·卫视（内置）" : "央广·卫视（本机不支持）";
+    private static final String CAT_CENTRAL = "央广省级";
+    private static final String CAT_LOCAL = "省市县";
 
     private static final String[] MIRRORS = {
             "https://de1.api.radio-browser.info",
@@ -76,12 +74,28 @@ public class OnlineBrowserActivity extends Activity {
     private String country = "CN";
 
     /**
-     * 是否只展示内置的「央广·卫视」。
+     * 是否只展示内置的「央广省级」。
      *
      * 内置那批 HLS 台（央广官方 / CCTV / 卫视伴音）固定在应用里，不该跟
      * 在线搜索的结果混在一起 —— 所以做成互斥的两种模式，进页面点按钮切换。
      */
     private boolean builtinMode = false;
+    /** 当前正在看的内置分类；null = 未进入内置模式 */
+    private String builtinCat = null;
+
+    /**
+     * 搜索序号。每发起一次搜索就 ++，回调里比对：对不上说明这次结果
+     * 已经过期（用户又切了内置分类或搜了别的），直接丢弃。
+     *
+     * 没有这个保护会出现：点「内置·网络」后，**上一次 doSearch 的后台线程
+     * 才返回**，无条件把 hint 和 results 覆盖成搜索内容 —— 表现就是
+     * "列表是内置的台，标签却写着搜索的文案"。
+     */
+    private int searchSeq = 0;
+
+    /** 5 个内置分类按钮，用于高亮当前选中的那个 */
+    private final java.util.Map<String, Button> builtinBtns =
+            new java.util.LinkedHashMap<String, Button>();
 
 
 
@@ -115,25 +129,8 @@ public class OnlineBrowserActivity extends Activity {
         });
 
         bindCountryButtons();
+        bindBuiltinCategories();
 
-        // 「央广·卫视（内置）」：切到应用自带的 HLS 台，不走网络搜索。
-        // 这是原来放在主界面「更多」菜单里的那个入口 —— 挪到这里更合适：
-        // 它本质是"另一批频率"，跟在线库的定位一致。
-        Button a9Btn = (Button) findViewById(ONLINE_A9_BTN);
-        if (a9Btn != null) {
-            a9Btn.setText(A9_BTN_TEXT);
-            a9Btn.setOnClickListener(new View.OnClickListener() {
-                @Override public void onClick(View v) {
-                    builtinMode = !builtinMode;
-                    ((Button) v).setText(A9_BTN_TEXT);
-                    if (builtinMode) {
-                        showBuiltinA9();
-                    } else {
-                        doSearch(searchBox.getText().toString().trim());
-                    }
-                }
-            });
-        }
 
         // 遥控器：确认键自己接管。
         // ListView 自带的 DPAD_CENTER 处理在这里不触发 onItemClick（主界面踩过同样的坑），
@@ -204,11 +201,34 @@ public class OnlineBrowserActivity extends Activity {
      * 电视布局的「地区」按钮：直接切换地区，不用进弹窗。
      * 竖屏布局没有这些 id，findViewById 返回 null，自动跳过。
      */
+    /**
+     * 内置分类按钮 —— 过滤应用自带的 1398 个台，不联网。
+     *
+     * 与「地区」按钮的区别：地区是去 radio-browser 搜外部台，
+     * 这里筛的是本地库。两排按钮各管一路，互不干扰。
+     */
+    private void bindBuiltinCategories() {
+        final int[] ids = {R.id.bi_central, R.id.bi_local, R.id.bi_net,
+                           R.id.bi_hmt, R.id.bi_intl};
+        final String[] cats = {CAT_CENTRAL, CAT_LOCAL, "网络", "港澳台", "国际"};
+        for (int i = 0; i < ids.length; i++) {
+            final String cat = cats[i];
+            View v = findViewById(ids[i]);
+            if (v == null) continue;          // 竖屏布局没有这一行
+            Button b = (Button) v;
+            builtinBtns.put(cat, b);
+            b.setOnClickListener(new View.OnClickListener() {
+                @Override public void onClick(View x) { selectBuiltin(cat); }
+            });
+        }
+        updateBuiltinButtons();
+        updateCurrentLabel();
+    }
+
     private void bindCountryButtons() {
-        final int[] ids = {R.id.cn_cn, R.id.cn_hk, R.id.cn_tw,
-                           R.id.cn_us, R.id.cn_jp, R.id.cn_all};
-        final String[] codes = {"CN", "HK", "TW", "US", "JP", ""};
-        final String[] names = {"中国大陆", "香港", "台湾", "美国", "日本", "全部"};
+        final int[] ids = {R.id.cn_cn, R.id.cn_hk, R.id.cn_tw, R.id.cn_all};
+        final String[] codes = {"CN", "HK", "TW", ""};
+        final String[] names = {"中国大陆", "香港", "台湾", "全部"};
         for (int i = 0; i < ids.length; i++) {
             final int idx = i;
             View b = findViewById(ids[i]);
@@ -216,7 +236,6 @@ public class OnlineBrowserActivity extends Activity {
             b.setOnClickListener(new View.OnClickListener() {
                 @Override public void onClick(View v) {
                     country = codes[idx];
-                    ((Button) findViewById(R.id.online_country)).setText(names[idx]);
                     doSearch(searchBox.getText().toString().trim());
                     list.requestFocus();
                     list.setSelection(0);
@@ -226,14 +245,13 @@ public class OnlineBrowserActivity extends Activity {
     }
 
     private void pickCountry() {
-        final String[] names = {"中国大陆", "香港", "台湾", "美国", "日本", "全部"};
-        final String[] codes = {"CN", "HK", "TW", "US", "JP", ""};
+        final String[] names = {"中国大陆", "香港", "台湾", "全部"};
+        final String[] codes = {"CN", "HK", "TW", ""};
         new AlertDialog.Builder(this)
                 .setTitle("选择地区")
                 .setItems(names, new DialogInterface.OnClickListener() {
                     @Override public void onClick(DialogInterface d, int which) {
                         country = codes[which];
-                        ((Button) findViewById(R.id.online_country)).setText(names[which]);
                         doSearch(searchBox.getText().toString().trim());
                     }
                 }).show();
@@ -253,27 +271,118 @@ public class OnlineBrowserActivity extends Activity {
     }
 
     /**
-     * 展示内置的「央广·卫视」（HLS 台）。
+     * 展示内置的「央广省级」（HLS 台）。
      *
      * 这批台固定在应用里，不走 radio-browser 搜索 —— 所以单独一个方法，
      * 而不是往 query() 里塞分支。
      */
-    private void showBuiltinA9() {
-        final List<Station> a9 = new ArrayList<Station>();
+    /**
+     * 展示内置台，可按分类过滤。
+     *
+     * @param cat 分类名（"央广省级"/"省市县"/"网络"/"港澳台"/"国际"）；
+     *            传 null 表示不过滤（等价于「央广省级（内置）」按钮的旧行为：
+     *            只看 HLS 那批 —— 那是"内置的电视伴音"）
+     */
+    private void showBuiltin(String cat) {
+        final List<Station> out = new ArrayList<Station>();
         for (Station s : StationData.builtIn()) {
-            if (s.isHls()) a9.add(s);      // 按地址判定，不看 region
+            if (matchesBuiltinCat(s, cat)) out.add(s);
         }
+        // 之前漏了这一步 —— 内置分类按钮点了没反应就是这个原因：
+        // 列表填了，但 builtinMode 没置位，后续刷新会把它当搜索结果覆盖掉。
+        builtinMode = true;
+        builtinCat = cat;
+        searchSeq++;      // 作废所有在飞的搜索，别让它们回写覆盖内置列表
         results.clear();
-        results.addAll(a9);
+        results.addAll(out);
         adapter.notifyDataSetChanged();
-        hint.setText(HLS_OK
-                ? "内置央广·卫视 · 共 " + a9.size() + " 个（HLS 流，本机可播）"
-                : "内置央广·卫视 · 共 " + a9.size() + " 个 · 本机是 Android 4.4，播不了 HLS，仅供查看");
+        String label = (cat == null) ? "内置" : "内置 · " + cat;
+        hint.setText(label + " · 共 " + out.size() + " 个"
+                + (HLS_OK ? "" : "（" + countHls(out) + " 个 HLS 本机放不了）"));
         list.requestFocus();
         list.setSelection(0);
     }
 
+    /**
+     * 切到某个内置分类。同时更新按钮文字 —— 按钮上显示**当前分类**，
+     * 让用户一眼看出正在看哪一类（之前按钮文字固定不动，看不出当前在哪）。
+     */
+    private void selectBuiltin(String cat) {
+        showBuiltin(cat);
+        updateBuiltinButtons();
+        updateCurrentLabel();
+    }
+
+    /**
+     * 第三排那个按钮的文案 —— 它是"当前在看什么"的标签，不是地区选择器。
+     *
+     * 之前它只跟着「地区」走（点地区按钮/地区弹窗才更新），
+     * 内置分类是另一条独立路径，两边各管各的 ——
+     * 于是按下内置分类时，列表换了、这个标签却还是旧地区名。
+     *
+     * 现在三条路径（地区按钮 / 地区弹窗 / 内置分类按钮）都调这里，
+     * 保证标签和列表永远一致。
+     */
+    private void updateCurrentLabel() {
+        Button b = (Button) findViewById(R.id.online_country);
+        if (b == null) return;
+        b.setText(builtinMode && builtinCat != null ? builtinCat : countryName(country));
+    }
+
+    /** 地区代码 → 显示名 */
+    private String countryName(String code) {
+        if ("CN".equals(code)) return "中国大陆";
+        if ("HK".equals(code)) return "香港";
+        if ("TW".equals(code)) return "台湾";
+        return "全部";
+    }
+
+    /** 当前选中的分类按钮标上「·当前」，其余保持分类名 */
+    private void updateBuiltinButtons() {
+        for (java.util.Map.Entry<String, Button> e : builtinBtns.entrySet()) {
+            boolean on = e.getKey().equals(builtinCat);
+            e.getValue().setText(on ? e.getKey() + " ·当前" : e.getKey());
+        }
+    }
+
+    /**
+     * 台是否属于某个内置分类。
+     *
+     * **不能直接比 s.region** —— 分类名和数据层的 region 值不是一回事：
+     *   · 「央广省级」→ 数据层是 region="中央"（还要兼容按名字判的 CCTV/CETV）
+     *   · 「港澳台」  → 数据层是三个值：香港/澳门/台湾
+     * 早先直接写 cat.equals(s.region)，于是这两个按钮永远拉不到台 ——
+     * 用户报的"内置按钮不起作用"就是这个。
+     *
+     * 匹配规则与主界面的 MainActivity.matchesCategory 保持一致，
+     * 改一处记得改另一处。
+     */
+    private boolean matchesBuiltinCat(Station s, String cat) {
+        if (cat == null) return s.isHls();       // 不指定分类 = 内置的 HLS 台
+        if (CAT_CENTRAL.equals(cat)) {
+            return "中央".equals(s.region)
+                    || s.name.startsWith("CCTV") || s.name.startsWith("CETV");
+        }
+        if ("港澳台".equals(cat)) {
+            return "香港".equals(s.region) || "澳门".equals(s.region) || "台湾".equals(s.region);
+        }
+        return cat.equals(s.region);
+    }
+
+    private int countHls(List<Station> list) {
+        int n = 0;
+        for (Station s : list) if (s.isHls()) n++;
+        return n;
+    }
+
     private void doSearch(final String q) {
+        final int seq = ++searchSeq;      // 认领本次搜索
+        // 发起搜索即离开内置模式 —— 状态和标签一起转，
+        // 不能只改列表不改标签（那就是用户看到的"标签跟分类不匹配"）。
+        builtinMode = false;
+        builtinCat = null;
+        updateBuiltinButtons();
+        updateCurrentLabel();
         hint.setText("查询中…");
         new Thread(new Runnable() {
             @Override public void run() {
@@ -281,9 +390,8 @@ public class OnlineBrowserActivity extends Activity {
                 final List<Station> f = found;
                 runOnUiThread(new Runnable() {
                     @Override public void run() {
-                        builtinMode = false;          // 搜索即退出内置频道模式
-                        Button ab = (Button) findViewById(ONLINE_A9_BTN);
-                        if (ab != null) ab.setText(A9_BTN_TEXT);
+                        // 过期结果直接丢 —— 用户已经切到内置分类/又搜了别的
+                        if (seq != searchSeq) return;   // 过期结果，丢弃
                         results.clear();
                         results.addAll(f);
                         adapter.notifyDataSetChanged();
@@ -299,7 +407,7 @@ public class OnlineBrowserActivity extends Activity {
     private List<Station> query(String q) {
         List<Station> out = new ArrayList<Station>();
         StringBuilder sb = new StringBuilder();
-        sb.append("/json/stations/search?hidebroken=true&limit=100&order=votes&reverse=true");
+        sb.append("/json/stations/search?hidebroken=true&limit=500&order=votes&reverse=true");
         if (country.length() > 0) sb.append("&countrycode=").append(country);
         if (q.length() > 0) sb.append("&name=").append(android.net.Uri.encode(q));
 

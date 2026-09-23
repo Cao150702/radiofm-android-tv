@@ -6,4 +6,6 @@
     <string name="pause">暂停</string>
     <string name="stop">停止</string>
     <string name="buffering">缓冲中…</string>
+    <!-- 版权声明。放在应用名下方（见两套 activity_main.xml 的标题栏）。 -->
+    <string name="copyright">东北小佛爷出品</string>
 </resources>

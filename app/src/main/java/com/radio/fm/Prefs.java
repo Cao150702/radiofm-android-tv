@@ -19,6 +19,11 @@ public final class Prefs {
     public static final String KEY_LAST_NAME       = "last_station_name";
     public static final String KEY_SHOW_ICY        = "show_icy";
     public static final String KEY_BOOT_RESUME     = "boot_resume";
+    /**
+     * 上次浏览的分类。电台库有 1398 个台，「全部频道」翻起来不现实 ——
+     * 所以启动时落在用户上次待过的分类，而不是每次都回到"全部"。
+     */
+    public static final String KEY_LAST_CATEGORY   = "last_category";
 
     private final SharedPreferences sp;
 

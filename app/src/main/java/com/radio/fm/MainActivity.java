@@ -28,7 +28,6 @@ import android.widget.EditText;
 import android.widget.ImageView;
 import android.widget.LinearLayout;
 import android.widget.ListView;
-import android.widget.Spinner;
 import android.widget.TextView;
 import android.widget.Toast;
 
@@ -57,8 +56,11 @@ public class MainActivity extends Activity implements RadioService.Listener {
     private TextView stationName, stationMeta, icyText, statusText, listHint;
     /** 当前电台表里 HLS 台的数量（4.4 上隐藏了几个，给用户一个交代） */
     private int hlsCount;
-    /** 动态频谱条（代替原来的静态调谐刻度）。见 SpectrumView。 */
-    private SpectrumView spectrum;
+    /** 调谐刻度盘的指针（装饰）。随播放状态游走，见 updateTuneNeedle。 */
+    private ImageView tuneNeedle;
+    /** 指针游走的当前位置（0..1），随帧推进 */
+    private float needlePos = 0f;
+    private boolean needleAnimating = false;
     private Button playBtn, stopBtn, favBtn;
     private ListView list;
     private StationAdapter adapter;
@@ -80,7 +82,7 @@ public class MainActivity extends Activity implements RadioService.Listener {
     private static final String CAT_ALL = "全部";
 
     /**
-     * 「央广·卫视」目录 —— 全国性频道。
+     * 「央广省级」目录 —— 全国性频道。
      *
      * 三部分：中国之声 + 28 个省级卫视伴音（东方/北京/广东…）
      *        + 央广官方 13 个（经济/音乐/民族/维语…）
@@ -89,18 +91,35 @@ public class MainActivity extends Activity implements RadioService.Listener {
      * 省级卫视放这里而不是各自省份，是因为它们和央广一样属于"电视伴音"，
      * 归一处好找，不用在 27 个省里翻。
      */
-    private static final String CAT_CENTRAL = "央广·卫视";
+    private static final String CAT_CENTRAL = "央广省级";
+    /**
+     * 省的台/县级台（region="省市县"）。
+     *
+     * 原先这些散在 39 个省分类里，和省级台混在一起 —— 而省级台按用户要求
+     * 归到了「央广省级」（央广 + 卫视伴音 + 各省省级台）。
+     * 于是剩下这一大堆地级市/县/区台，单独成一类。
+     */
+    private static final String CAT_LOCAL = "省市县";
 
     /**
-     * 按钮在「全部频道」和「央广·卫视」之间对调。
+     * 分类循环顺序（按一下换一个）。
      *
-     * 早先这个按钮是「安卓9频道」开关（HLS 技术分类）。后来 HLS 那批台
-     * 按内容归进了「央广·卫视」，安卓9 作为一个分类就失去意义了 ——
-     * 剩下的全是全国性广播，跟央广·卫视完全重合。所以按钮改成切这个分类，
-     * 那才是用户真正想一键到达的地方。
+     * 只放真实存在的内容分类，不含「全部」—— 「全部」是 1398 项，
+     * 循环里带上是给用户添麻烦。想回全部走「更多 → 全部电台」。
+     *
+     * 顺序按"常用程度"排：央广省级（打开就能用）→ 省市县（最多）→ 网络 → 港澳台 → 国际。
      */
-    private static final String A9_ON  = "央广·卫视";
-    private static final String A9_OFF = "全部频道";
+    private static final String[] CAT_CYCLE = {
+            CAT_CENTRAL, CAT_LOCAL, "网络", "港澳台", "国际"
+    };
+
+    /**
+     * 分类循环按钮。按一下换一个分类，按钮上显示**当前分类名**。
+     *
+     * 演化史：最早是「安卓9频道」开关（HLS 技术分类），后来 HLS 台按内容
+     * 归进「央广省级」，那个分类就没意义了；再后来改成"显示下一个分类"，
+     * 用户反馈看着乱 —— 现在直接显示当前分类。
+     */
     private Button a9Filter;
 
     /**
@@ -112,11 +131,12 @@ public class MainActivity extends Activity implements RadioService.Listener {
      */
     private boolean favOnly = false;
 
-    /** 当前选中的来源分类（Spinner）。见 buildCategories()。 */
+    /** 当前选中的来源分类。见 buildCategories()。 */
     private String category = CAT_ALL;
+    /** 只在本次 onCreate 里恢复一次，之后用户怎么选就是怎么选 */
+    private boolean categoryRestored = false;
 
-    private Spinner categorySpinner;
-    private ArrayAdapter<String> categoryAdapter;
+
     private final List<String> categories = new ArrayList<String>();
 
     private String query = "";
@@ -191,13 +211,13 @@ public class MainActivity extends Activity implements RadioService.Listener {
         icyText     = (TextView) findViewById(R.id.icy_text);
         statusText  = (TextView) findViewById(R.id.status_text);
         listHint    = (TextView) findViewById(R.id.list_hint);   // 竖屏布局没有，为 null 时跳过
-        spectrum    = (SpectrumView) findViewById(R.id.spectrum);
+        tuneNeedle  = (ImageView) findViewById(R.id.tune_needle);
         playBtn     = (Button) findViewById(R.id.btn_play);
         stopBtn     = (Button) findViewById(R.id.btn_stop);
         favBtn      = (Button) findViewById(R.id.btn_fav);
         list        = (ListView) findViewById(R.id.station_list);
         filterBox   = (EditText) findViewById(R.id.filter_box);
-        categorySpinner = (Spinner) findViewById(R.id.category_spinner);
+
 
         // 电视布局（layout-land）里没有软键盘搜索框，改用一个「只看收藏」按钮。
         // 竖屏布局没有这个 id，findViewById 返回 null，这里跳过即可 ——
@@ -212,18 +232,13 @@ public class MainActivity extends Activity implements RadioService.Listener {
                 }
             });
         }
-        // 一键在「全部频道」和「央广·卫视」之间对调。
-        //
-        // 按钮文字显示的是**按下去会切到哪**，不是当前状态 ——
-        // 用户报的「按了之后按钮还写着安卓9频道」就是这个：他以为是状态，
-        // 实际得能一眼看出「再按一下会去哪」。
+        // 分类循环按钮：按一下换一个分类，按钮上显示**当前分类名**。
         a9Filter = (Button) findViewById(R.id.btn_a9_filter);
         if (a9Filter != null) {
-            a9Filter.setText(A9_ON);
+            a9Filter.setText(category);
             a9Filter.setOnClickListener(new View.OnClickListener() {
                 @Override public void onClick(View v) {
-                    boolean toCentral = !CAT_CENTRAL.equals(category);
-                    selectCategory(toCentral ? CAT_CENTRAL : CAT_ALL);
+                    selectCategory(nextCategory());
                 }
             });
         }
@@ -386,9 +401,9 @@ public class MainActivity extends Activity implements RadioService.Listener {
     /**
      * 电台是否属于当前选中的分类。
      *
-     * 目录：全部频道 / 安卓4 / 央广·卫视 / 港澳台 / 各地（各省台）/ 网络 / 国际…
+     * 目录：全部频道 / 安卓4 / 央广省级 / 港澳台 / 各地（各省台）/ 网络 / 国际…
      * 分类按 region 聚合（见 buildCategories），三个跨 region 的合并项：
-     *   · 央广·卫视 —— region「中央」，另含按名字匹配的 CCTV/CETV
+     *   · 央广省级 —— region「中央」，另含按名字匹配的 CCTV/CETV
      *   · 港澳台     —— 香港/澳门/台湾，各自只有几个台，单列太碎
      *   · 安卓4      —— 非 HLS 那批，**按 Station.isHls() 判定，不看 region**
      */
@@ -401,9 +416,9 @@ public class MainActivity extends Activity implements RadioService.Listener {
         }
         if ("安卓4".equals(category)) return !s.isHls();
         if (CAT_CENTRAL.equals(category)) {
-            // 全国性频道：中国之声 + 28 个省级卫视伴音 + 央广官方 13 个 + CCTV/CETV
-            // 它们 region 都标「中央」；HLS 与否是另一回事（见 Station.isHls），
-            // 4.4 上的可见性由上面的 isHls() 判断负责，这里只管内容归类。
+            // 省级及以上：央广官方 + CCTV/CETV + 各省卫视伴音 + 各省省级台。
+            // 前四类在数据里 region 都是「中央」（见 StationData），
+            // 名字以 CCTV/CETV 开头的保险再判一次。
             if ("中央".equals(s.region)) return true;
             return s.name.startsWith("CCTV") || s.name.startsWith("CETV");
         }
@@ -416,13 +431,31 @@ public class MainActivity extends Activity implements RadioService.Listener {
     /**
      * 按当前电台表构建分类目录。
      *
-     * 顺序固定（全部→安卓4→央广·卫视→港澳台→各省…），不按数量排序 ——
+     * 顺序固定（全部→安卓4→央广省级→港澳台→各省…），不按数量排序 ——
      * 遥控器用户的肌肉记忆是「第几项」，目录顺序一变就白记了。
      */
     private void buildCategories() {
         categories.clear();
         categories.add(CAT_ALL);
 
+        // 起始分类。1398 个台，「全部频道」翻起来不现实 ——
+        // 每台设备只需要选一次，之后一直停在自己常用的分类里。
+        //
+        // 优先级：上次用过的分类 > 央广省级（首次默认）。
+        // 首次不落在「全部」上：一屏 1398 项等于让人从零开始找，
+        // 而央广省级只有 73 个台，是"打开就能用"的起点。
+        if (!categoryRestored) {
+            categoryRestored = true;
+            String last = prefs.getString(Prefs.KEY_LAST_CATEGORY, "");
+            if (last.length() > 0 && !CAT_ALL.equals(last)) {
+                category = last;
+            } else {
+                category = CAT_CENTRAL;
+            }
+        }
+
+        // 数据层已把 region 收敛成 5 个：中央 / 省市县 / 网络 / 香港 / 国际。
+        // 这里只做「合并显示 + 按需出现」两件事，不再做归类判断。
         final java.util.LinkedHashSet<String> rest = new java.util.LinkedHashSet<String>();
         boolean hasCentral = false, hasHmt = false;
         for (Station s : allStations) {
@@ -438,45 +471,81 @@ public class MainActivity extends Activity implements RadioService.Listener {
         if (hasHmt) categories.add("港澳台");
         categories.addAll(rest);
 
-        if (categorySpinner == null) return;   // 布局里没有分类控件时静默跳过
-        if (categoryAdapter == null) {
-            categoryAdapter = new ArrayAdapter<String>(this,
-                    android.R.layout.simple_spinner_item, categories);
-            categoryAdapter.setDropDownViewResource(android.R.layout.simple_spinner_dropdown_item);
-            categorySpinner.setAdapter(categoryAdapter);
-            categorySpinner.setOnItemSelectedListener(new AdapterView.OnItemSelectedListener() {
-                @Override public void onItemSelected(AdapterView<?> p, View v, int pos, long id) {
-                    String picked = categories.get(pos);
-                    if (!picked.equals(category)) {
-                        category = picked;
-                        syncA9Button();
-                        applyFilter();
-                    }
-                }
-                @Override public void onNothingSelected(AdapterView<?> p) { }
-            });
-        } else {
-            categoryAdapter.notifyDataSetChanged();
-        }
         // 目录变化后原来的选择可能已不存在，回落到「全部」
         if (!categories.contains(category)) category = CAT_ALL;
-        categorySpinner.setSelection(categories.indexOf(category));
+        syncCategoryButton();
     }
 
-    /** 同步按钮文字 —— 它显示的是"按下去会去哪" */
+    /** 按钮显示**当前分类**，按一下就换到下一个、标签跟着变。 */
     private void syncA9Button() {
         if (a9Filter == null) return;   // 竖屏布局没有这个按钮
-        a9Filter.setText(CAT_CENTRAL.equals(category) ? A9_OFF : A9_ON);
+        // 「全部」不在循环里 —— 直接显示"全部"，按一下进第一个分类
+        a9Filter.setText(CAT_ALL.equals(category) ? "全部" : category);
     }
 
-    /** 从菜单/按钮切分类：同时更新 Spinner 和按钮文字，避免两处显示打架 */
-    private void selectCategory(String cat) {
-        if (categories.contains(cat)) {
-            category = cat;
-            if (categorySpinner != null) categorySpinner.setSelection(categories.indexOf(cat));
+    /** 循环里的下一个分类（当前不在循环里就从第一个开始） */
+    private String nextCategory() {
+        for (int i = 0; i < CAT_CYCLE.length; i++) {
+            if (CAT_CYCLE[i].equals(category)) {
+                return CAT_CYCLE[(i + 1) % CAT_CYCLE.length];
+            }
         }
+        return CAT_CYCLE[0];
+    }
+
+    /** 从菜单/按钮切分类：统一在这里更新按钮文字，避免多处显示打架 */
+    private void selectCategory(String cat) {
+        // 不检查 categories.contains —— 目录是按当前电台表动态生成的，
+        // 而「央广省级」只在表里有 region=中央 的台时才出现。
+        // 之前用 contains 做守卫，一旦目录里没有该项就**静默不改分类**，
+        // 表现为"按了按钮但列表和标签都没变"（用户报过）。
+        // 现在直接赋值：即使该项暂不在目录里，applyFilter 也按它筛，
+        // buildCategories 下次会把它补进目录。
+        category = cat;
+        prefs.setString(Prefs.KEY_LAST_CATEGORY, category);
+        syncCategoryButton();
         syncA9Button();
         applyFilter();
+    }
+
+    /** 下拉按钮已移除，这里空着兼容旧调用点 */
+    private void syncCategoryButton() { }
+
+    /**
+     * 分类选择弹窗。
+     *
+     * 用 AlertDialog 列表而不是 Spinner —— Spinner 的下拉弹窗靠系统主题渲染，
+     * 电视盒子上实测弹不出来（本机就是这个问题）。这个写法与「更多」菜单一致，
+     * 那一个在用户的电视上已验证可用。
+     *
+     * 焦点处理是电视上能用的关键：AlertDialog 的列表默认不一定拿到焦点，
+     * 表现为"方向键没反应"。
+     */
+    private void showCategoryDialog() {
+        if (categories.isEmpty()) return;
+        final String[] items = categories.toArray(new String[0]);
+        final AlertDialog dlg = new AlertDialog.Builder(this)
+                .setTitle("选择分类")
+                .setItems(items, new DialogInterface.OnClickListener() {
+                    @Override public void onClick(DialogInterface d, int which) {
+                        selectCategory(items[which]);
+                    }
+                })
+                .create();
+        dlg.setOnShowListener(new DialogInterface.OnShowListener() {
+            @Override public void onShow(DialogInterface d) {
+                final ListView lv = dlg.getListView();
+                if (lv != null) {
+                    lv.setFocusableInTouchMode(false);
+                    lv.setFocusable(true);
+                    lv.requestFocus();
+                    // 直接定位到当前分类，省得从头翻
+                    int idx = categories.indexOf(category);
+                    lv.setSelection(idx >= 0 ? idx : 0);
+                }
+            }
+        });
+        dlg.show();
     }
 
     /**
@@ -559,7 +628,7 @@ public class MainActivity extends Activity implements RadioService.Listener {
 
         // 频谱只在**真正出声**时动。缓冲/暂停/停止/出错都静止 ——
         // 这是用户明确要的：暂停了还在跳会让人以为没停住。
-        if (spectrum != null) spectrum.setActive(st == RadioService.STATE_PLAYING);
+        updateTuneNeedle(st);
 
         switch (st) {
             case RadioService.STATE_PREPARING:
@@ -587,8 +656,111 @@ public class MainActivity extends Activity implements RadioService.Listener {
             icyText.setVisibility(View.GONE);
         }
 
-        // 原来的"调谐指针随播放状态摆动"已由动态频谱取代（见 SpectrumView）。
+        // 调谐指针的动画由 updateTuneNeedle 驱动（见该方法）。
         updateStatus();
+    }
+
+    /**
+     * 调谐指针的位置与动画。
+     *
+     * 播放中：沿刻度缓慢左右游走（每帧推一点，撞到两端就掉头）。
+     * 其余状态：停住 —— 缓冲停在中间表示"在调"，停止回最左端。
+     *
+     * 不做真实频率映射：网络电台没有"频率"这个概念，硬编一个数字是假信息。
+     * 这里就是个老式收音机的观感。
+     */
+    private void updateTuneNeedle(int state) {
+        if (tuneNeedle == null) return;
+
+        if (state == RadioService.STATE_PLAYING) {
+            if (!needleAnimating) {
+                needleAnimating = true;
+                needleRunnable.run();
+            }
+        } else {
+            needleAnimating = false;
+            tuneNeedle.removeCallbacks(needleRunnable);
+            if (state == RadioService.STATE_PREPARING) {
+                needlePos = 0.5f;                  // 缓冲: 停中间
+            } else {
+                needlePos = 0f;                    // 停止/出错: 回最左
+            }
+            applyNeedle();
+        }
+    }
+
+    private final Runnable needleRunnable = new Runnable() {
+        @Override public void run() {
+            if (!needleAnimating) return;
+            needlePos += needleDir * 0.035f;
+            if (needlePos >= 1f) { needlePos = 1f; needleDir = -1; }
+            if (needlePos <= 0f) { needlePos = 0f; needleDir = 1; }
+            applyNeedle();
+            tuneNeedle.postDelayed(this, 90);
+        }
+    };
+    private int needleDir = 1;
+
+    /** 把 needlePos(0..1) 映射成刻度盘内的实际 x 坐标 */
+    private void applyNeedle() {
+        View track = findViewById(R.id.tune_track);
+        if (track == null || tuneNeedle == null) return;
+        int w = track.getWidth();
+        if (w <= 0) return;
+        int margin = (int) (12 * getResources().getDisplayMetrics().density);
+        float x = margin + needlePos * Math.max(1, w - margin * 2);
+        tuneNeedle.setX(x);
+    }
+
+    /**
+     * 返回键 → 弹选择框。
+     *
+     * ⚠️ 必须走 onKeyDown(KEYCODE_BACK)，不能只靠 onBackPressed ——
+     * onBackPressed 是 API 5 引入的，但**从 Android 5.0 起它只在该 Activity
+     * 是任务根时才为 BACK 键调用**，4.4 上根本不生效。本应用主力机型是 4.4，
+     * 只覆写 onBackPressed 会导致"按返回键毫无反应"。
+     * 两个都覆写：4.4~4.4 走 onKeyDown，5.0+ 也能兜住。
+     */
+    @Override
+    public boolean onKeyDown(int keyCode, KeyEvent event) {
+        if (keyCode == KeyEvent.KEYCODE_BACK) {
+            showBackDialog();
+            return true;                     // 已处理，别让系统 finish()
+        }
+        return super.onKeyDown(keyCode, event);
+    }
+
+    @Override
+    public void onBackPressed() {
+        showBackDialog();
+    }
+
+    /**
+     * 按返回键后的选择框。
+     *
+     * 两个选项的区别：
+     *   · 回到桌面 —— 服务继续放（本来就是前台服务，切后台不断）；
+     *     下次点图标回来，Android 会把原来的 Activity 恢复出来，接着放。
+     *   · 彻底退出 —— 停服务 + 杀进程，见 exitApp()。
+     * 电视上返回键最自然的预期就是"退到后台"，所以把它放第一项。
+     */
+    private void showBackDialog() {
+        new AlertDialog.Builder(this)
+                .setTitle("返回")
+                .setItems(new String[]{
+                        "回到桌面（后台继续播放）",
+                        "彻底退出"
+                }, new DialogInterface.OnClickListener() {
+                    @Override public void onClick(DialogInterface d, int which) {
+                        if (which == 0) {
+                            moveTaskToBack(true);   // 退回后台，服务与播放都不停
+                        } else {
+                            exitApp();
+                        }
+                    }
+                })
+                .setNegativeButton("取消", null)
+                .show();
     }
 
     private void updateStatus() {
@@ -597,7 +769,7 @@ public class MainActivity extends Activity implements RadioService.Listener {
         statusText.setHint("共 " + shown.size() + " 个电台" + extra);
 
         // 分类里一个台都没有时给个解释，别让用户以为是坏了。
-        // 最容易撞上的场景：Android 4.4 上选「央广·卫视」—— 那一类 66 个台里
+        // 最容易撞上的场景：Android 4.4 上选「央广省级」—— 那一类 66 个台里
         // 65 个是 HLS，4.4 只能显示剩下的 1 个。不说明的话看着就像加载失败。
         if (listHint != null) {
             if (shown.isEmpty() && !favOnly) {

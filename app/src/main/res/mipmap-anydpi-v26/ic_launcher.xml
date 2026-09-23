@@ -1,18 +1,19 @@
 <?xml version="1.0" encoding="utf-8"?>
 <!-- 自适应图标（Android 8.0+）。
-     前景用位图（mipmap-*/ic_launcher.png）—— 那张图的白色背景已经抠掉了，
-     透明区域会透出下面的背景色。
 
-     为什么必须有这个文件：没有它的话，8.0+ 的启动器会拿普通图标**垫一层白底**
-     再裁形状 —— 用户看到的"图标有白背景"就是这么来的。
+     ⚠️ foreground 必须指向 **ic_launcher_foreground**，不能指向 ic_launcher。
+     这个文件自己就叫 ic_launcher（mipmap-anydpi-v26/ic_launcher.xml），
+     写 @mipmap/ic_launcher 就是自己引用自己 —— 启动器解析时无限展开，
+     表现为**图标点不开、应用起不来**。这个坑踩过一次，改的时候务必注意。
 
-     前景缩放 0.62：自适应图标的画布是 108dp，但只有中间 72dp 是安全区，
-     四周会被启动器按形状裁掉。图案本身已经带内边距，再缩一点保证天线、
-     提手这些边缘不会被切到。 -->
+     foreground 的 PNG 已按规范做好：108dp 画布、内容缩到安全区(72dp)的 82%
+     并**居中**。所以这里直接引用即可，不要再套 <inset> ——
+     套了会二次缩放，图案又跑到右下角去（那也是踩过的坑）。
+
+     background 用深木色而不是白色：8.0+ 启动器会按形状裁切，
+     没有这段声明它会拿普通图标垫一层**白底**再裁 ——
+     用户看到的"图标有白背景"就是这个原因。 -->
 <adaptive-icon xmlns:android="http://schemas.android.com/apk/res/android">
     <background android:drawable="@color/icon_bg" />
-    <foreground>
-        <inset android:drawable="@mipmap/ic_launcher"
-               android:inset="19%" />
-    </foreground>
+    <foreground android:drawable="@mipmap/ic_launcher_foreground" />
 </adaptive-icon>

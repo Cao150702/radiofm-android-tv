@@ -51,22 +51,32 @@
             android:minWidth="80dp"
             android:text="中国大陆" />
 
-        <!-- 内置的央广·卫视（HLS 台），与在线搜索互斥 -->
-        <Button
-            android:id="@+id/online_a9"
-            android:layout_width="wrap_content"
-            android:layout_height="wrap_content"
-            android:layout_marginLeft="6dp"
-            android:text="央广·卫视" />
+    </LinearLayout>
 
-        <TextView
-            android:id="@+id/online_hint"
-            android:layout_width="0dp"
-            android:layout_height="wrap_content"
-            android:layout_weight="1"
-            android:layout_marginLeft="8dp"
-            android:textSize="12sp"
-            android:textColor="#5D4037" />
+    <!-- 内置台的分类筛选（过滤应用自带的 1398 个台） -->
+    <LinearLayout
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:orientation="horizontal"
+        android:paddingLeft="10dp"
+        android:paddingRight="10dp"
+        android:paddingBottom="4dp">
+
+        <Button android:id="@+id/bi_central" style="?android:attr/borderlessButtonStyle"
+            android:layout_width="0dp" android:layout_weight="1" android:layout_height="wrap_content"
+            android:textSize="12sp" android:text="央广省级" />
+        <Button android:id="@+id/bi_local" style="?android:attr/borderlessButtonStyle"
+            android:layout_width="0dp" android:layout_weight="1" android:layout_height="wrap_content"
+            android:textSize="12sp" android:text="省市县" />
+        <Button android:id="@+id/bi_net" style="?android:attr/borderlessButtonStyle"
+            android:layout_width="0dp" android:layout_weight="1" android:layout_height="wrap_content"
+            android:textSize="12sp" android:text="网络" />
+        <Button android:id="@+id/bi_hmt" style="?android:attr/borderlessButtonStyle"
+            android:layout_width="0dp" android:layout_weight="1" android:layout_height="wrap_content"
+            android:textSize="12sp" android:text="港澳台" />
+        <Button android:id="@+id/bi_intl" style="?android:attr/borderlessButtonStyle"
+            android:layout_width="0dp" android:layout_weight="1" android:layout_height="wrap_content"
+            android:textSize="12sp" android:text="国际" />
     </LinearLayout>
 
     <ListView

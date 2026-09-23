@@ -34,21 +34,43 @@
         <Button android:id="@+id/cn_tw" style="@style/TvSmallButton"
             android:layout_width="0dp" android:layout_weight="1" android:layout_height="64dp"
             android:layout_marginLeft="10dp" android:text="台湾" />
-        <Button android:id="@+id/cn_us" style="@style/TvSmallButton"
-            android:layout_width="0dp" android:layout_weight="1" android:layout_height="64dp"
-            android:layout_marginLeft="10dp" android:text="美国" />
-        <Button android:id="@+id/cn_jp" style="@style/TvSmallButton"
-            android:layout_width="0dp" android:layout_weight="1" android:layout_height="64dp"
-            android:layout_marginLeft="10dp" android:text="日本" />
         <Button android:id="@+id/cn_all" style="@style/TvSmallButton"
             android:layout_width="0dp" android:layout_weight="1" android:layout_height="64dp"
             android:layout_marginLeft="10dp" android:text="全部" />
 
-        <!-- 内置的央广·卫视（HLS 台）。跟在线搜索互斥：
-             点它切到应用自带的央广官方/CCTV/卫视伴音，再点回到搜索。 -->
-        <Button android:id="@+id/online_a9" style="@style/TvSmallButton"
-            android:layout_width="0dp" android:layout_weight="1.4" android:layout_height="64dp"
-            android:layout_marginLeft="10dp" android:text="央广·卫视（内置）" />
+    </LinearLayout>
+
+    <!-- 内置台的分类筛选（不联网，直接过滤应用自带的 1398 个台）。
+         与上面的「地区」是两套东西：地区是去 radio-browser 搜外部台，
+         这里是筛本地库。按「内置」按钮进入这个模式。 -->
+    <LinearLayout
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:orientation="horizontal"
+        android:paddingLeft="20dp"
+        android:paddingRight="20dp"
+        android:paddingBottom="10dp"
+        android:gravity="center_vertical">
+
+        <TextView style="@style/TvListHint"
+            android:layout_width="wrap_content" android:layout_height="wrap_content"
+            android:layout_marginRight="14dp" android:text="内置" />
+
+        <Button android:id="@+id/bi_central" style="@style/TvSmallButton"
+            android:layout_width="0dp" android:layout_weight="1" android:layout_height="52dp"
+            android:textSize="17sp" android:text="央广省级" />
+        <Button android:id="@+id/bi_local" style="@style/TvSmallButton"
+            android:layout_width="0dp" android:layout_weight="1" android:layout_height="52dp"
+            android:layout_marginLeft="8dp" android:textSize="17sp" android:text="省市县" />
+        <Button android:id="@+id/bi_net" style="@style/TvSmallButton"
+            android:layout_width="0dp" android:layout_weight="1" android:layout_height="52dp"
+            android:layout_marginLeft="8dp" android:textSize="17sp" android:text="网络" />
+        <Button android:id="@+id/bi_hmt" style="@style/TvSmallButton"
+            android:layout_width="0dp" android:layout_weight="1" android:layout_height="52dp"
+            android:layout_marginLeft="8dp" android:textSize="17sp" android:text="港澳台" />
+        <Button android:id="@+id/bi_intl" style="@style/TvSmallButton"
+            android:layout_width="0dp" android:layout_weight="1" android:layout_height="52dp"
+            android:layout_marginLeft="8dp" android:textSize="17sp" android:text="国际" />
     </LinearLayout>
 
     <!-- 隐藏的原控件：Java 里 findViewById 和 setText 照常用，只是不显示 -->
@@ -94,6 +116,6 @@
         android:layout_height="wrap_content"
         android:padding="20dp"
         style="@style/TvListHint"
-        android:text="数据来自 radio-browser.info。央广·卫视为内置台；Android 4.4 上会自动过滤 HLS 流。" />
+        android:text="数据来自 radio-browser.info。央广省级为内置台；Android 4.4 上会自动过滤 HLS 流。" />
 
 </LinearLayout>

@@ -24,6 +24,15 @@
             android:singleLine="true"
             android:ellipsize="marquee" />
 
+        <!-- 版权声明。放在应用名正下方，尺寸克制、不抢主标题。 -->
+        <TextView
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="2dp"
+            android:text="@string/copyright"
+            android:textColor="#BCAAA4"
+            android:textSize="11sp" />
+
         <TextView
             android:id="@+id/station_meta"
             android:layout_width="match_parent"
@@ -32,18 +41,98 @@
             android:textSize="12sp"
             android:singleLine="true" />
 
-        <!-- 动态频谱条（代替原来的静态调谐刻度）。
-         播放时随声音起伏，缓冲/暂停/停止时静止。
-         由 SpectrumView 自绘 —— 频谱值来自 RadioService 的 Visualizer，
-         但这里做的是**合成**动画（每个柱条按各自的频率和相位起伏）而不是
-         真实 FFT：真实波形经由 MediaPlayer session 取，在很多电视盒子上
-         该 session 拿不到（返回空），真做了会是一根直条。
-         合成动画观感稳定、零兼容风险，且"随播放/暂停联动"的体验是真的。 -->
-        <com.radio.fm.SpectrumView
-            android:id="@+id/spectrum"
+        <!-- 调谐刻度盘 + 指针（老式收音机那种）。
+     指针位置随播放状态移动（见 MainActivity.updateTuneNeedle）：
+     播放时在刻度上缓慢左右游走、缓冲时停在中间、停止时回最左端。
+     纯装饰 —— 不做真实频率映射，因为网络电台没有"频率"这个概念，
+     硬编一个数字反而是假信息。 -->
+        <FrameLayout
             android:layout_width="match_parent"
             android:layout_height="34dp"
-            android:layout_marginTop="8dp" />
+            android:layout_marginTop="10dp"
+            android:background="#FFF8E1">
+
+            <!-- 这个 LinearLayout 就是刻度的实际绘制区，
+                 Java 拿它的宽度来算指针位置（见 applyNeedle），
+                 所以必须有 id。 -->
+            <LinearLayout
+                android:id="@+id/tune_track"
+                android:layout_width="match_parent"
+                android:layout_height="match_parent"
+                android:orientation="horizontal"
+                android:gravity="center_vertical"
+                android:paddingLeft="10dp"
+                android:paddingRight="10dp">
+                <View android:layout_width="1dp" android:layout_height="match_parent"
+                    android:layout_marginTop="10dp"
+                    android:background="#8D6E63" />
+                <View android:layout_width="0dp" android:layout_height="1dp" android:layout_weight="1" />
+                <View android:layout_width="1dp" android:layout_height="match_parent"
+                    android:layout_marginTop="15dp"
+                    android:background="#BCAAA4" />
+                <View android:layout_width="0dp" android:layout_height="1dp" android:layout_weight="1" />
+                <View android:layout_width="1dp" android:layout_height="match_parent"
+                    android:layout_marginTop="15dp"
+                    android:background="#BCAAA4" />
+                <View android:layout_width="0dp" android:layout_height="1dp" android:layout_weight="1" />
+                <View android:layout_width="1dp" android:layout_height="match_parent"
+                    android:layout_marginTop="10dp"
+                    android:background="#8D6E63" />
+                <View android:layout_width="0dp" android:layout_height="1dp" android:layout_weight="1" />
+                <View android:layout_width="1dp" android:layout_height="match_parent"
+                    android:layout_marginTop="15dp"
+                    android:background="#BCAAA4" />
+                <View android:layout_width="0dp" android:layout_height="1dp" android:layout_weight="1" />
+                <View android:layout_width="1dp" android:layout_height="match_parent"
+                    android:layout_marginTop="15dp"
+                    android:background="#BCAAA4" />
+                <View android:layout_width="0dp" android:layout_height="1dp" android:layout_weight="1" />
+                <View android:layout_width="1dp" android:layout_height="match_parent"
+                    android:layout_marginTop="10dp"
+                    android:background="#8D6E63" />
+                <View android:layout_width="0dp" android:layout_height="1dp" android:layout_weight="1" />
+                <View android:layout_width="1dp" android:layout_height="match_parent"
+                    android:layout_marginTop="15dp"
+                    android:background="#BCAAA4" />
+                <View android:layout_width="0dp" android:layout_height="1dp" android:layout_weight="1" />
+                <View android:layout_width="1dp" android:layout_height="match_parent"
+                    android:layout_marginTop="15dp"
+                    android:background="#BCAAA4" />
+                <View android:layout_width="0dp" android:layout_height="1dp" android:layout_weight="1" />
+                <View android:layout_width="1dp" android:layout_height="match_parent"
+                    android:layout_marginTop="10dp"
+                    android:background="#8D6E63" />
+                <View android:layout_width="0dp" android:layout_height="1dp" android:layout_weight="1" />
+                <View android:layout_width="1dp" android:layout_height="match_parent"
+                    android:layout_marginTop="15dp"
+                    android:background="#BCAAA4" />
+                <View android:layout_width="0dp" android:layout_height="1dp" android:layout_weight="1" />
+                <View android:layout_width="1dp" android:layout_height="match_parent"
+                    android:layout_marginTop="15dp"
+                    android:background="#BCAAA4" />
+                <View android:layout_width="0dp" android:layout_height="1dp" android:layout_weight="1" />
+                <View android:layout_width="1dp" android:layout_height="match_parent"
+                    android:layout_marginTop="10dp"
+                    android:background="#8D6E63" />
+                <View android:layout_width="0dp" android:layout_height="1dp" android:layout_weight="1" />
+                <View android:layout_width="1dp" android:layout_height="match_parent"
+                    android:layout_marginTop="15dp"
+                    android:background="#BCAAA4" />
+                <View android:layout_width="0dp" android:layout_height="1dp" android:layout_weight="1" />
+                <View android:layout_width="1dp" android:layout_height="match_parent"
+                    android:layout_marginTop="15dp"
+                    android:background="#BCAAA4" />
+                <View android:layout_width="0dp" android:layout_height="1dp" android:layout_weight="1" />
+            </LinearLayout>
+
+            <ImageView
+                android:id="@+id/tune_needle"
+                android:layout_width="3dp"
+                android:layout_height="match_parent"
+                android:layout_gravity="start|center_vertical"
+                android:layout_marginLeft="12dp"
+                android:background="#C62828" />
+        </FrameLayout>
     </LinearLayout>
 
     <!-- ===== 状态区 ===== -->
@@ -127,12 +216,6 @@
             android:textSize="14sp" />
 
         <!-- 428 个台不分类翻不动。竖屏是触摸场景，Spinner 点开就是系统列表。 -->
-        <Spinner
-            android:id="@+id/category_spinner"
-            android:layout_width="wrap_content"
-            android:layout_height="wrap_content"
-            android:layout_marginLeft="6dp"
-            android:minWidth="120dp" />
     </LinearLayout>
 
     <ListView
