@@ -10,8 +10,8 @@ android {
         applicationId "com.radio.fm"
         minSdk 19          // Android 4.4 KitKat — 覆盖 4.4 及以上全部机型
         targetSdk 28       // 不上 29+，避免分区存储/前台服务类型等新限制
-        versionCode 24
-        versionName "3.3"
+        versionCode 25
+        versionName "3.4"
     }
 
     buildTypes {
